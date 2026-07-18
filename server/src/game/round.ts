@@ -18,7 +18,10 @@ export class Round {
   endsAt: number | null = null;
 
   readonly strokes: Stroke[] = [];
+  /** guesser sessionId -> points earned this round. */
   readonly guessed = new Map<string, number>();
+  /** Points the drawer earned this round (set at round end). */
+  drawerPoints = 0;
 
   constructor(params: { id: string; ordinal: number; drawerSessionId: string; choices: string[] }) {
     this.id = params.id;

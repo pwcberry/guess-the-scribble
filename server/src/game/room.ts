@@ -15,9 +15,10 @@ import { makeId, makeSessionId } from "./ids.js";
 import { Player } from "./player.js";
 import { Round } from "./round.js";
 import { type Cancel, type Scheduler, systemScheduler } from "./scheduler.js";
+import { drawerPoints, guesserPoints } from "./scoring.js";
 import type { RoomSettings } from "./settings.js";
 import type { WordPool } from "./words.js";
-import { letterCount, maskWord } from "./wordmask.js";
+import { isCloseGuess, isCorrectGuess, letterCount, maskWord } from "./wordmask.js";
 
 export type RoomStatus = "lobby" | "playing" | "ended";
 
@@ -295,6 +296,14 @@ export class Room {
     this.clearTimer();
     round.phase = "intermission";
 
+    // Drawer earns in proportion to how many guessers got it.
+    const totalGuessers = this.playerList.filter(p => p.sessionId !== round.drawerSessionId).length;
+    round.drawerPoints = drawerPoints(round.guessed.size, totalGuessers);
+    const drawer = this.players.get(round.drawerSessionId);
+    if (drawer) {
+      drawer.score += round.drawerPoints;
+    }
+
     const word = round.word ?? round.choices[0] ?? "";
     const results = this.buildResults(round);
     const scores = this.scoreboard();
@@ -364,9 +373,48 @@ export class Room {
     }
   }
 
-  /** Phase 1c: guesses are chat. Scoring/correctness is added in Phase 1d. */
   private handleGuess(player: Player, text: string): void {
+    const round = this.round;
+
+    // Outside an active drawing phase, or from a player who already guessed:
+    // treat as ordinary chat (drawer chat is suppressed to avoid leaks).
+    if (!round || round.phase !== "drawing" || !round.word) {
+      this.broadcast({ type: "chat", nickname: player.nickname, text, kind: "chat" });
+      return;
+    }
+    if (player.sessionId === round.drawerSessionId || player.hasGuessed) {
+      return;
+    }
+
+    if (isCorrectGuess(text, round.word)) {
+      const remaining = Math.max(0, (round.endsAt ?? this.now()) - this.now());
+      const points = guesserPoints(remaining, this.settings.drawTimeSec * 1000);
+      player.hasGuessed = true;
+      player.guessedAt = this.now();
+      player.score += points;
+      round.guessed.set(player.sessionId, points);
+
+      player.send({ type: "guessResult", correct: true });
+      this.broadcast({ type: "correctGuess", sessionId: player.sessionId, nickname: player.nickname });
+
+      if (this.allGuessed(round)) {
+        this.endRound();
+      }
+      return;
+    }
+
+    // Wrong guess: everyone sees it as chat; the guesser gets a private "close" nudge.
     this.broadcast({ type: "chat", nickname: player.nickname, text, kind: "chat" });
+    if (isCloseGuess(text, round.word)) {
+      player.send({ type: "chat", nickname: player.nickname, text: "You're close!", kind: "close" });
+    }
+  }
+
+  private allGuessed(round: Round): boolean {
+    const guessers = this.playerList.filter(
+      p => p.connected && p.sessionId !== round.drawerSessionId,
+    );
+    return guessers.length > 0 && guessers.every(p => p.hasGuessed);
   }
 
   // --- views & broadcasting ----------------------------------------------
@@ -441,7 +489,9 @@ export class Room {
       sessionId: p.sessionId,
       nickname: p.nickname,
       guessed: round.guessed.has(p.sessionId),
-      points: 0,
+      points: p.sessionId === round.drawerSessionId
+        ? round.drawerPoints
+        : round.guessed.get(p.sessionId) ?? 0,
     }));
   }
 

@@ -19,7 +19,8 @@ clean before it's considered done.
   - Done: full protocol shape in `shared`; `game/{connection,player}.ts`, expanded `Room`; `ws/handlers.ts` replaces the relay. Verified: 17/17 tests, eslint clean, build green.
 - [x] **1c** Round lifecycle: drawer rotation, 3 word choices, timers
   - Done: `scheduler.ts` (injectable clock), `words.ts` (WordPool), `round.ts`, `wordmask.ts`, `events.ts`; Room round state machine (start→choose→draw→reveal→next→end), drawer-only draw/clear/undo, auto-pick, drawer-absence handling. Verified: 24 tests (adds deterministic round tests via FakeScheduler).
-- [ ] **1d** Server-side guess matching + time-decay scoring
+- [x] **1d** Server-side guess matching + time-decay scoring
+  - Done: `scoring.ts` (guesser time-decay + drawer proportional), `wordmask.ts` correctness + close (Levenshtein); Room guess handling — correct→score+correctGuess+early end, wrong→chat(+private "close"), drawer scored at round end. Verified: 34 tests.
 - [ ] **1e** Persist games/rounds/results + drawings (replayable stroke JSON)
 - [ ] **1f** Freeze full WS protocol with `zod` validation; secret word never to non-drawers
 
