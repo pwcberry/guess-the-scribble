@@ -5,7 +5,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import type { Db } from "./db/connection.js";
 import { RoomRegistry } from "./game/registry.js";
 import { registerRoomRoutes } from "./routes/rooms.js";
-import { registerRelay } from "./ws/relay.js";
+import { registerGameSocket } from "./ws/handlers.js";
 
 export interface AppDeps {
   db: Db;
@@ -24,7 +24,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: deps.logger ?? false });
 
   await app.register(websocket);
-  await app.register(registerRelay);
+  await registerGameSocket(app, { registry });
   await registerRoomRoutes(app, { registry, db: deps.db });
 
   const { clientDist } = deps;

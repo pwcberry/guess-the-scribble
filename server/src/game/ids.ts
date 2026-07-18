@@ -17,3 +17,8 @@ export function makeInviteCode(): string {
 export function makeId(): string {
   return id();
 }
+
+/** A per-player session id. Stored client-side to enable reconnection. */
+export function makeSessionId(): string {
+  return id();
+}

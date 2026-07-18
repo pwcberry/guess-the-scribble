@@ -1,11 +1,6 @@
-export interface RoomSettings {
-  /** Number of rounds in a game (each player draws roughly rounds/players times). */
-  rounds: number;
-  /** Seconds a drawer has to draw before the round auto-ends. */
-  drawTimeSec: number;
-  /** Maximum players allowed in the room. */
-  maxPlayers: number;
-}
+import type { RoomSettings } from "@gts/shared";
+
+export type { RoomSettings };
 
 export const DEFAULT_SETTINGS: RoomSettings = {
   rounds: 3,

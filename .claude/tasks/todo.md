@@ -15,7 +15,8 @@ clean before it's considered done.
 ## Phase 1 — Server game engine
 - [x] **1a** Room model + `POST /api/rooms` + `nanoid` invite codes
   - Done: `game/{ids,settings,room,registry}.ts`, `db/rooms.ts`, `routes/rooms.ts`; extracted testable `buildApp()` (`app.ts`) + slim `index.ts`. Verified: 8/8 tests, eslint clean.
-- [ ] **1b** Player/session model + reconnection via `sessionId`
+- [x] **1b** Player/session model + WS join + reconnection via `sessionId`
+  - Done: full protocol shape in `shared`; `game/{connection,player}.ts`, expanded `Room`; `ws/handlers.ts` replaces the relay. Verified: 17/17 tests, eslint clean, build green.
 - [ ] **1c** Round lifecycle: drawer rotation, 3 word choices, timers
 - [ ] **1d** Server-side guess matching + time-decay scoring
 - [ ] **1e** Persist games/rounds/results + drawings (replayable stroke JSON)

@@ -22,7 +22,14 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      "no-unused-vars": ["error", {varsIgnorePattern: "^[A-Z_]"}],
+      // Use the TypeScript-aware rule so params in type positions (interface /
+      // function-type signatures) are not reported. Preserves the repo's
+      // convention of ignoring UPPER/underscore-prefixed identifiers.
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": ["error", {
+        varsIgnorePattern: "^[A-Z_]",
+        argsIgnorePattern: "^_",
+      }],
     },
   },
   {
