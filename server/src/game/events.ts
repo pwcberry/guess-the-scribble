@@ -1,4 +1,12 @@
-import type { RoundResult, Score, Stroke } from "@gts/shared";
+import type { Score, Stroke } from "@gts/shared";
+
+export interface PersistedResult {
+  sessionId: string;
+  nickname: string;
+  guessed: boolean;
+  guessedAt: number | null;
+  points: number;
+}
 
 /** Snapshot of a finished round, enough to persist it durably. */
 export interface RoundEndedData {
@@ -8,7 +16,7 @@ export interface RoundEndedData {
   drawerNickname: string;
   word: string;
   drawing: Stroke[];
-  results: RoundResult[];
+  results: PersistedResult[];
 }
 
 export interface PlayerSnapshot {

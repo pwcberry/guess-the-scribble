@@ -10,7 +10,7 @@ import type {
   Stroke,
 } from "@gts/shared";
 import type { Connection } from "./connection.js";
-import type { GameEvent, GameEventSink } from "./events.js";
+import type { GameEvent, GameEventSink, PersistedResult } from "./events.js";
 import { makeId, makeSessionId } from "./ids.js";
 import { Player } from "./player.js";
 import { Round } from "./round.js";
@@ -305,7 +305,13 @@ export class Room {
     }
 
     const word = round.word ?? round.choices[0] ?? "";
-    const results = this.buildResults(round);
+    const persisted = this.buildPersistedResults(round);
+    const results: RoundResult[] = persisted.map(r => ({
+      sessionId: r.sessionId,
+      nickname: r.nickname,
+      guessed: r.guessed,
+      points: r.points,
+    }));
     const scores = this.scoreboard();
 
     this.broadcast({ type: "roundEnd", word, results, scores });
@@ -318,7 +324,7 @@ export class Room {
         drawerNickname: this.nicknameOf(round.drawerSessionId),
         word,
         drawing: [...round.strokes],
-        results,
+        results: persisted,
       },
     });
 
@@ -484,11 +490,12 @@ export class Room {
 
   // --- helpers ------------------------------------------------------------
 
-  private buildResults(round: Round): RoundResult[] {
+  private buildPersistedResults(round: Round): PersistedResult[] {
     return this.playerList.map(p => ({
       sessionId: p.sessionId,
       nickname: p.nickname,
       guessed: round.guessed.has(p.sessionId),
+      guessedAt: p.guessedAt,
       points: p.sessionId === round.drawerSessionId
         ? round.drawerPoints
         : round.guessed.get(p.sessionId) ?? 0,

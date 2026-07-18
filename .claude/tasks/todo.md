@@ -21,7 +21,8 @@ clean before it's considered done.
   - Done: `scheduler.ts` (injectable clock), `words.ts` (WordPool), `round.ts`, `wordmask.ts`, `events.ts`; Room round state machine (start→choose→draw→reveal→next→end), drawer-only draw/clear/undo, auto-pick, drawer-absence handling. Verified: 24 tests (adds deterministic round tests via FakeScheduler).
 - [x] **1d** Server-side guess matching + time-decay scoring
   - Done: `scoring.ts` (guesser time-decay + drawer proportional), `wordmask.ts` correctness + close (Levenshtein); Room guess handling — correct→score+correctGuess+early end, wrong→chat(+private "close"), drawer scored at round end. Verified: 34 tests.
-- [ ] **1e** Persist games/rounds/results + drawings (replayable stroke JSON)
+- [x] **1e** Persist games/rounds/results + drawings (replayable stroke JSON)
+  - Done: `db/games.ts` (insertGame/saveRound/endGame + player upsert), `db/persistence.ts` (event sink chaining ordered async writes, `flush()` for tests/shutdown); wired into `buildApp`. Verified: 35 tests (full-game persistence: game/round/results/drawing JSON/players).
 - [ ] **1f** Freeze full WS protocol with `zod` validation; secret word never to non-drawers
 
 ## Phase 2 — Client UI
