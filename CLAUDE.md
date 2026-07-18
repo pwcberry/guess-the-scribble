@@ -22,7 +22,7 @@ npx vitest           # run tests (see caveat below)
 npx vitest run test/foo.test.ts   # run a single test file
 ```
 
-The app is a **client/server split**: the Vite-built client lives in `dist/`, the compiled Node server (from `src/server.ts` via `tsconfig.server.json`) lives in `dist/server/` and serves that client plus the WebSocket game endpoint. **`build` order matters** — `build:client` (Vite) empties `dist/`, so it must run *before* `build:server`; the `build` script already sequences them that way.
+The app is a **client/server split**: the Vite-built client lives in `dist`, the compiled Node server (from `src/server.ts` via `tsconfig.server.json`) lives in `dist/server` and serves that client plus the WebSocket game endpoint. **`build` order matters** — `build:client` (Vite) empties `dist`, so it must run *before* `build:server`; the `build` script already sequences them that way.
 
 ## Before every commit
 
@@ -37,20 +37,20 @@ Fix any failures before committing rather than committing around them. Do not co
 
 ## Server (src/server.ts)
 
-- Plain `node:http` static server + a `ws` `WebSocketServer` on the same port at path `/ws`. Serves `dist/` (with an SPA fallback to `index.html` for extension-less routes) and **relays** `draw`/`clear`/`chat` messages to all *other* connected clients. There is **no game state, no rooms, no validation** beyond ignoring malformed JSON — that's the next layer to build.
-- Compiled with `tsconfig.server.json` (`nodenext` modules, **emit on**, out to `dist/server/`). Unlike the client config it does **not** set `allowImportingTsExtensions`, so server imports use normal Node ESM resolution — don't import client `.ts` files (bundler-mode) into the server.
+- Plain `node:http` static server + a `ws` `WebSocketServer` on the same port at path `/ws`. Serves `dist` (with an SPA fallback to `index.html` for extension-less routes) and **relays** `draw`/`clear`/`chat` messages to all *other* connected clients. There is **no game state, no rooms, no validation** beyond ignoring malformed JSON — that's the next layer to build.
+- Compiled with `tsconfig.server.json` (`nodenext` modules, **emit on**, out to `dist/server`). Unlike the client config it does **not** set `allowImportingTsExtensions`, so server imports use normal Node ESM resolution — don't import client `.ts` files (bundler-mode) into the server.
 - Reads `PORT` from the environment (`.env`, loaded via `--env-file` in dev; default 3000). `.env` is gitignored — see `.env.example`.
 
 ## Config caveats
 
-- **Dev = two processes.** `npm run dev` runs Vite (client) and `tsx --watch src/server.ts` (server) in parallel via `concurrently`. In dev the client is served by Vite on its own port and must connect to the server's `/ws` explicitly; only the production `dist/` build is served by the Node server itself.
+- **Dev = two processes.** `npm run dev` runs Vite (client) and `tsx --watch src/server.ts` (server) in parallel via `concurrently`. In dev the client is served by Vite on its own port and must connect to the server's `/ws` explicitly; only the production `dist` build is served by the Node server itself.
 - **`vitest.config.ts` expects a `test/` directory** (`include: ["./test/**/*.ts"]`, `globalSetup: ["./test/globalSetup.ts"]`) that doesn't exist yet. Create `test/` and `test/globalSetup.ts` before writing tests.
 
 ## Architecture
 
 - **UI framework: Lit web components.** Components are `LitElement` subclasses registered with `@customElement('tag-name')`, styles live in a static `styles = css\`...\`` block (Shadow DOM–scoped), reactive state uses `@property`/`@state`, templates use the `html\`...\`` tagged template. `index.html` mounts the root component directly as a custom element tag.
 - **TypeScript is strict.** `verbatimModuleSyntax` is on everywhere, so use `import type { … }` for type-only imports. `noUnusedLocals`/`noUnusedParameters` and `erasableSyntaxOnly` are enforced across all three tsconfigs.
-- **Two module worlds.** The **client** (`tsconfig.app.json`) is bundler-mode with `noEmit` + `allowImportingTsExtensions` — Vite bundles it, and local imports use `.ts` extensions. The **server** (`tsconfig.server.json`) is `nodenext` and actually **emits** JS to `dist/server/`. `tsconfig.node.json` typechecks `vite.config.ts` only.
+- **Two module worlds.** The **client** (`tsconfig.app.json`) is bundler-mode with `noEmit` + `allowImportingTsExtensions` — Vite bundles it, and local imports use `.ts` extensions. The **server** (`tsconfig.server.json`) is `nodenext` and actually **emits** JS to `dist/server`. `tsconfig.node.json` typechecks `vite.config.ts` only.
 
 ## Conventions
 
