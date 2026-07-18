@@ -1,17 +1,15 @@
-import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import Fastify from "fastify";
-import websocket from "@fastify/websocket";
-import fastifyStatic from "@fastify/static";
-import { registerRelay } from "./ws/relay.js";
+import { buildApp } from "./app.js";
+import { createDb } from "./db/connection.js";
+import { seedWords } from "./db/seed.js";
+import { runMigrations } from "./db/setup.js";
 
 /**
- * guess-the-scribble server.
+ * guess-the-scribble server bootstrap.
  *
- * Fastify app hosting the WebSocket game endpoint and (in production) serving
- * the built client. This is still the transport skeleton: the WebSocket layer
- * currently relays draw/clear/chat events between players. Rooms, turns, word
- * selection, scoring and persistence are layered on in Phase 1.
+ * Opens the SQLite database, brings it up to date (migrate + seed on boot so a
+ * fresh checkout is playable with no extra steps), builds the Fastify app, and
+ * starts listening. Rooms/rounds/scoring live in the game engine (server/game).
  */
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -23,22 +21,9 @@ const clientDist
   = process.env.CLIENT_DIST
     ?? fileURLToPath(new URL("../../client/dist", import.meta.url));
 
-const app = Fastify({ logger: true });
+const db = createDb();
+await runMigrations(db);
+await seedWords(db);
 
-await app.register(websocket);
-await app.register(registerRelay);
-
-if (existsSync(clientDist)) {
-  await app.register(fastifyStatic, { root: clientDist, wildcard: false });
-
-  // SPA fallback: unknown non-API, non-WS routes get the client shell.
-  app.setNotFoundHandler((request, reply) => {
-    const url = request.raw.url ?? "/";
-    if (request.method === "GET" && !url.startsWith("/api") && !url.startsWith("/ws")) {
-      return reply.sendFile("index.html");
-    }
-    return reply.code(404).type("text/plain").send("Not found");
-  });
-}
-
+const app = await buildApp({ db, clientDist, logger: true });
 await app.listen({ port: PORT, host: "0.0.0.0" });

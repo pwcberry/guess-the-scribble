@@ -13,7 +13,8 @@ clean before it's considered done.
   - Verified: full build, `db:migrate` (→ `data/gts.db`), `eslint .` clean, `vitest run` 5/5 green, server runtime smoke test (static + SPA fallback + WS relay).
 
 ## Phase 1 — Server game engine
-- [ ] **1a** Room model + `POST /api/rooms` + `nanoid` invite codes
+- [x] **1a** Room model + `POST /api/rooms` + `nanoid` invite codes
+  - Done: `game/{ids,settings,room,registry}.ts`, `db/rooms.ts`, `routes/rooms.ts`; extracted testable `buildApp()` (`app.ts`) + slim `index.ts`. Verified: 8/8 tests, eslint clean.
 - [ ] **1b** Player/session model + reconnection via `sessionId`
 - [ ] **1c** Round lifecycle: drawer rotation, 3 word choices, timers
 - [ ] **1d** Server-side guess matching + time-decay scoring
