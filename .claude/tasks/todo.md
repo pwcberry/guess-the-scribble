@@ -23,7 +23,8 @@ clean before it's considered done.
   - Done: `scoring.ts` (guesser time-decay + drawer proportional), `wordmask.ts` correctness + close (Levenshtein); Room guess handling — correct→score+correctGuess+early end, wrong→chat(+private "close"), drawer scored at round end. Verified: 34 tests.
 - [x] **1e** Persist games/rounds/results + drawings (replayable stroke JSON)
   - Done: `db/games.ts` (insertGame/saveRound/endGame + player upsert), `db/persistence.ts` (event sink chaining ordered async writes, `flush()` for tests/shutdown); wired into `buildApp`. Verified: 35 tests (full-game persistence: game/round/results/drawing JSON/players).
-- [ ] **1f** Freeze full WS protocol with `zod` validation; secret word never to non-drawers
+- [x] **1f** Freeze full WS protocol with `zod` validation; secret word never to non-drawers
+  - Done: `ws/schema.ts` zod discriminated-union validation at the trust boundary (bounds on points/nickname/guess); handler rejects malformed/invalid; protocol marked FROZEN. Verified: 46 tests (adds schema unit tests + real-socket WS integration: join, pre-join reject, malformed reject, unknown-room reject).
 
 ## Phase 2 — Client UI
 - [ ] **2a** WS client + reconnection + state store

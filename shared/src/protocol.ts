@@ -4,6 +4,10 @@
  * Single source of truth for everything exchanged over the WebSocket. The
  * server is authoritative: guessers never receive the secret word, only its
  * pattern (blanks). Both `@gts/client` and `@gts/server` import from here.
+ *
+ * FROZEN (Phase 1f): inbound `ClientMessage`s are validated at the server
+ * boundary by the zod schema in `@gts/server` (ws/schema.ts). Any change here
+ * must be mirrored there. Treat protocol changes as "ask first".
  */
 
 /** WebSocket endpoint path the client connects to. */

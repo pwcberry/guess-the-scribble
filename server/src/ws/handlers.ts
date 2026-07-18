@@ -1,9 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import type { WebSocket } from "ws";
-import { WS_PATH, type ClientMessage, type ServerMessage } from "@gts/shared";
+import { WS_PATH, type ServerMessage } from "@gts/shared";
 import type { Connection } from "../game/connection.js";
 import type { RoomRegistry } from "../game/registry.js";
 import type { Room } from "../game/room.js";
+import { parseClientMessage } from "./schema.js";
 
 /** Adapts a raw ws socket to the engine's transport-agnostic Connection. */
 class WsConnection implements Connection {
@@ -22,19 +23,6 @@ class WsConnection implements Connection {
   close(): void {
     this.socket.close();
   }
-}
-
-function parseClientMessage(raw: string): ClientMessage | null {
-  try {
-    const value: unknown = JSON.parse(raw);
-    if (value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string") {
-      return value as ClientMessage;
-    }
-  }
-  catch {
-    // fall through
-  }
-  return null;
 }
 
 /**
