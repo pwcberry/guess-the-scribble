@@ -16,7 +16,7 @@ export class MyElement extends LitElement {
    * The number of times the button has been clicked.
    */
   @property({ type: Number })
-  count = 0;
+  accessor count = 0;
 
   render() {
     return html`

@@ -8,7 +8,7 @@
     "dev:client": "vite",
     "dev:server": "tsx --env-file=.env --watch src/server.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "tsc && vite build",
+    "build:client": "tsc -b && vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "preview": "vite preview",
     "publish": "npm run build && node dist/server/server.js"
