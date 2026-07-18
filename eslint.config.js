@@ -5,7 +5,7 @@ import stylistic from "@stylistic/eslint-plugin";
 import {defineConfig, globalIgnores} from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['**/dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -22,7 +22,21 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      "no-unused-vars": ["error", {varsIgnorePattern: "^[A-Z_]"}],
+      // Use the TypeScript-aware rule so params in type positions (interface /
+      // function-type signatures) are not reported. Preserves the repo's
+      // convention of ignoring UPPER/underscore-prefixed identifiers.
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": ["error", {
+        varsIgnorePattern: "^[A-Z_]",
+        argsIgnorePattern: "^_",
+      }],
+    },
+  },
+  {
+    // Server and shared code runs on Node, not in the browser.
+    files: ['server/**/*.ts', 'shared/**/*.ts', '**/*.config.ts'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])

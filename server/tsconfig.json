@@ -7,12 +7,13 @@
     "moduleResolution": "nodenext",
     "types": ["node"],
     "skipLibCheck": true,
+    "strict": true,
 
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
 
     "rootDir": "./src",
-    "outDir": "./dist/server",
+    "outDir": "./dist",
     "noEmit": false,
 
     /* Linting */
@@ -21,5 +22,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/server.ts"]
+  "include": ["src"]
 }
