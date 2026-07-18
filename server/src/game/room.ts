@@ -1,12 +1,31 @@
-import type { ClientMessage, ErrorCode, PlayerView, RoomView, ServerMessage } from "@gts/shared";
+import type {
+  ClientMessage,
+  ErrorCode,
+  PlayerView,
+  RoundPublic,
+  RoundResult,
+  RoomView,
+  Score,
+  ServerMessage,
+  Stroke,
+} from "@gts/shared";
 import type { Connection } from "./connection.js";
-import { makeSessionId } from "./ids.js";
+import type { GameEvent, GameEventSink } from "./events.js";
+import { makeId, makeSessionId } from "./ids.js";
 import { Player } from "./player.js";
+import { Round } from "./round.js";
+import { type Cancel, type Scheduler, systemScheduler } from "./scheduler.js";
 import type { RoomSettings } from "./settings.js";
+import type { WordPool } from "./words.js";
+import { letterCount, maskWord } from "./wordmask.js";
 
 export type RoomStatus = "lobby" | "playing" | "ended";
 
 const MAX_NICKNAME = 20;
+/** Seconds the drawer has to choose a word before one is auto-picked. */
+const CHOOSE_TIME_MS = 15_000;
+/** Pause between the round reveal and the next round starting. */
+const INTERMISSION_MS = 5_000;
 
 export interface JoinRequest {
   nickname: string;
@@ -18,10 +37,22 @@ export type JoinResult
   = | { ok: true; player: Player; reconnected: boolean }
     | { ok: false; code: ErrorCode; message: string };
 
+export interface RoomDeps {
+  id: string;
+  inviteCode: string;
+  settings: RoomSettings;
+  words: WordPool;
+  createdAt?: number;
+  scheduler?: Scheduler;
+  events?: GameEventSink;
+}
+
 /**
- * Authoritative in-memory state and behaviour for one room. Owns its players and
- * (from Phase 1c) the running game/round. All outbound messages flow through the
- * players' Connections; the engine never touches the transport directly.
+ * Authoritative in-memory state and behaviour for one room: players, the running
+ * game, and the round state machine (choose -> draw -> reveal -> next). All
+ * outbound messages flow through players' Connections; timers use the injected
+ * scheduler; durable writes happen via emitted events. The engine itself never
+ * touches the transport or the database.
  */
 export class Room {
   readonly id: string;
@@ -31,20 +62,26 @@ export class Room {
   status: RoomStatus = "lobby";
 
   hostSessionId: string | null = null;
+  gameId: string | null = null;
+  round: Round | null = null;
 
-  /** Insertion-ordered; iteration order defines drawer rotation. */
-  protected readonly players = new Map<string, Player>();
+  private readonly players = new Map<string, Player>();
+  private readonly words: WordPool;
+  private readonly scheduler: Scheduler;
+  private readonly events?: GameEventSink;
 
-  constructor(params: {
-    id: string;
-    inviteCode: string;
-    settings: RoomSettings;
-    createdAt?: number;
-  }) {
-    this.id = params.id;
-    this.inviteCode = params.inviteCode;
-    this.settings = params.settings;
-    this.createdAt = params.createdAt ?? Date.now();
+  private roundOrdinal = 0;
+  private drawerCursor = 0;
+  private timerCancel: Cancel | null = null;
+
+  constructor(deps: RoomDeps) {
+    this.id = deps.id;
+    this.inviteCode = deps.inviteCode;
+    this.settings = deps.settings;
+    this.createdAt = deps.createdAt ?? Date.now();
+    this.words = deps.words;
+    this.scheduler = deps.scheduler ?? systemScheduler;
+    this.events = deps.events;
   }
 
   get playerList(): Player[] {
@@ -55,7 +92,6 @@ export class Room {
     return this.players.get(sessionId);
   }
 
-  /** True when no players remain at all (safe for the registry to drop). */
   isEmpty(): boolean {
     return this.players.size === 0;
   }
@@ -63,13 +99,15 @@ export class Room {
   // --- membership ---------------------------------------------------------
 
   join(req: JoinRequest): JoinResult {
-    // Reconnection: a known sessionId reclaims its seat and score.
     if (req.sessionId) {
       const existing = this.players.get(req.sessionId);
       if (existing) {
         existing.conn = req.conn;
         existing.connected = true;
         existing.send({ type: "joined", sessionId: existing.sessionId, room: this.view() });
+        if (this.round) {
+          this.sendRoundTo(existing);
+        }
         this.broadcastState({ except: existing.sessionId });
         return { ok: true, player: existing, reconnected: true };
       }
@@ -97,7 +135,6 @@ export class Room {
     return { ok: true, player, reconnected: false };
   }
 
-  /** Connection dropped: keep the seat (for reconnection) but mark offline. */
   markDisconnected(sessionId: string): void {
     const player = this.players.get(sessionId);
     if (!player) {
@@ -106,9 +143,9 @@ export class Room {
     player.connected = false;
     player.conn = null;
     this.broadcastState();
+    this.handleDrawerAbsence(sessionId);
   }
 
-  /** Explicit leave: relinquish the seat entirely. */
   leave(sessionId: string): void {
     const player = this.players.get(sessionId);
     if (!player) {
@@ -121,6 +158,7 @@ export class Room {
     }
     this.broadcast({ type: "playerLeft", sessionId });
     this.broadcastState();
+    this.handleDrawerAbsence(sessionId);
   }
 
   // --- inbound messages ---------------------------------------------------
@@ -132,23 +170,203 @@ export class Room {
     }
 
     switch (msg.type) {
+      case "startGame":
+        this.startGame(sessionId);
+        break;
+      case "chooseWord":
+        this.chooseWord(sessionId, msg.word);
+        break;
       case "draw":
-        this.broadcast({ type: "drawBroadcast", stroke: msg.stroke }, { except: sessionId });
+        this.handleDraw(sessionId, msg.stroke);
         break;
       case "clearCanvas":
-        this.broadcast({ type: "clearCanvas" }, { except: sessionId });
+        this.handleClear(sessionId);
+        break;
+      case "undo":
+        this.handleUndo(sessionId);
         break;
       case "guess":
-        // No active round yet (Phase 1c/1d add guess scoring); treat as chat.
-        this.broadcast({ type: "chat", nickname: player.nickname, text: msg.text, kind: "chat" });
+        this.handleGuess(player, msg.text);
         break;
       case "leave":
         this.leave(sessionId);
         break;
-      // startGame / chooseWord / undo are handled once rounds land (Phase 1c).
       default:
         break;
     }
+  }
+
+  // --- game lifecycle -----------------------------------------------------
+
+  startGame(sessionId: string): void {
+    const player = this.players.get(sessionId);
+    if (!player) {
+      return;
+    }
+    if (sessionId !== this.hostSessionId || this.status !== "lobby") {
+      player.send({ type: "error", code: "not_allowed", message: "Only the host can start, once, from the lobby." });
+      return;
+    }
+    if (this.connectedCount() < 2) {
+      player.send({ type: "error", code: "bad_request", message: "Need at least 2 players to start." });
+      return;
+    }
+
+    this.status = "playing";
+    this.gameId = makeId();
+    this.roundOrdinal = 0;
+    this.drawerCursor = 0;
+    for (const p of this.players.values()) {
+      p.score = 0;
+    }
+    this.emit({
+      type: "gameStarted",
+      gameId: this.gameId,
+      roomId: this.id,
+      startedAt: this.now(),
+      roundCount: this.settings.rounds,
+    });
+    this.beginRound();
+  }
+
+  private beginRound(): void {
+    this.roundOrdinal += 1;
+    if (this.roundOrdinal > this.settings.rounds) {
+      this.endGame();
+      return;
+    }
+    const drawer = this.pickDrawer();
+    if (!drawer) {
+      this.endGame();
+      return;
+    }
+
+    for (const p of this.players.values()) {
+      p.hasGuessed = false;
+      p.guessedAt = null;
+    }
+
+    this.round = new Round({
+      id: makeId(),
+      ordinal: this.roundOrdinal,
+      drawerSessionId: drawer.sessionId,
+      choices: this.words.pickChoices(3),
+    });
+
+    this.broadcast({ type: "roundStart", round: this.publicRound()! });
+    drawer.send({ type: "wordChoices", words: this.round.choices });
+    this.setTimer(CHOOSE_TIME_MS, () => this.autoChoose());
+  }
+
+  chooseWord(sessionId: string, word: string): void {
+    const round = this.round;
+    if (!round || round.phase !== "choosing" || sessionId !== round.drawerSessionId) {
+      return;
+    }
+    if (!round.choices.includes(word)) {
+      return;
+    }
+    this.startDrawing(word);
+  }
+
+  private autoChoose(): void {
+    const round = this.round;
+    if (round && round.phase === "choosing" && round.choices.length > 0) {
+      this.startDrawing(round.choices[0]!);
+    }
+  }
+
+  private startDrawing(word: string): void {
+    const round = this.round!;
+    round.word = word;
+    round.phase = "drawing";
+    round.startedAt = this.now();
+    round.endsAt = round.startedAt + this.settings.drawTimeSec * 1000;
+
+    this.broadcast({ type: "roundStart", round: this.publicRound()! });
+    this.setTimer(this.settings.drawTimeSec * 1000, () => this.endRound());
+  }
+
+  private endRound(): void {
+    const round = this.round;
+    if (!round) {
+      return;
+    }
+    this.clearTimer();
+    round.phase = "intermission";
+
+    const word = round.word ?? round.choices[0] ?? "";
+    const results = this.buildResults(round);
+    const scores = this.scoreboard();
+
+    this.broadcast({ type: "roundEnd", word, results, scores });
+    this.emit({
+      type: "roundEnded",
+      data: {
+        gameId: this.gameId!,
+        roundId: round.id,
+        ordinal: round.ordinal,
+        drawerNickname: this.nicknameOf(round.drawerSessionId),
+        word,
+        drawing: [...round.strokes],
+        results,
+      },
+    });
+
+    this.setTimer(INTERMISSION_MS, () => this.beginRound());
+  }
+
+  private endGame(): void {
+    this.clearTimer();
+    this.status = "ended";
+    this.round = null;
+    const scores = this.scoreboard();
+    this.broadcast({ type: "gameEnd", scores });
+    this.emit({
+      type: "gameEnded",
+      gameId: this.gameId!,
+      endedAt: this.now(),
+      scores,
+      players: this.playerList.map(p => ({ sessionId: p.sessionId, nickname: p.nickname, score: p.score })),
+    });
+  }
+
+  // --- drawing & guessing -------------------------------------------------
+
+  private handleDraw(sessionId: string, stroke: Stroke): void {
+    const round = this.round;
+    if (!round || round.phase !== "drawing" || sessionId !== round.drawerSessionId) {
+      return;
+    }
+    round.strokes.push(stroke);
+    this.broadcast({ type: "drawBroadcast", stroke }, { except: sessionId });
+  }
+
+  private handleClear(sessionId: string): void {
+    const round = this.round;
+    if (!round || round.phase !== "drawing" || sessionId !== round.drawerSessionId) {
+      return;
+    }
+    round.strokes.length = 0;
+    this.broadcast({ type: "clearCanvas" }, { except: sessionId });
+  }
+
+  private handleUndo(sessionId: string): void {
+    const round = this.round;
+    if (!round || round.phase !== "drawing" || sessionId !== round.drawerSessionId) {
+      return;
+    }
+    round.strokes.pop();
+    // Replay the remaining strokes so all guessers stay in sync.
+    this.broadcast({ type: "clearCanvas" }, { except: sessionId });
+    for (const stroke of round.strokes) {
+      this.broadcast({ type: "drawBroadcast", stroke }, { except: sessionId });
+    }
+  }
+
+  /** Phase 1c: guesses are chat. Scoring/correctness is added in Phase 1d. */
+  private handleGuess(player: Player, text: string): void {
+    this.broadcast({ type: "chat", nickname: player.nickname, text, kind: "chat" });
   }
 
   // --- views & broadcasting ----------------------------------------------
@@ -159,15 +377,25 @@ export class Room {
       status: this.status,
       settings: this.settings,
       players: this.playerList.map(p => this.viewOf(p)),
-      round: null,
+      round: this.publicRound(),
     };
   }
 
-  protected viewOf(player: Player): PlayerView {
-    return player.view({
-      isHost: player.sessionId === this.hostSessionId,
-      isDrawer: false,
-    });
+  publicRound(): RoundPublic | null {
+    const round = this.round;
+    if (!round) {
+      return null;
+    }
+    return {
+      ordinal: round.ordinal,
+      totalRounds: this.settings.rounds,
+      drawerSessionId: round.drawerSessionId,
+      drawerNickname: this.nicknameOf(round.drawerSessionId),
+      wordPattern: round.word ? maskWord(round.word) : "",
+      wordLength: round.word ? letterCount(round.word) : 0,
+      phase: round.phase,
+      endsAt: round.endsAt,
+    };
   }
 
   broadcast(message: ServerMessage, opts: { except?: string } = {}): void {
@@ -178,7 +406,14 @@ export class Room {
     }
   }
 
-  protected broadcastState(opts: { except?: string } = {}): void {
+  protected viewOf(player: Player): PlayerView {
+    return player.view({
+      isHost: player.sessionId === this.hostSessionId,
+      isDrawer: this.round?.drawerSessionId === player.sessionId,
+    });
+  }
+
+  private broadcastState(opts: { except?: string } = {}): void {
     const view = this.view();
     for (const player of this.players.values()) {
       if (player.connected && player.sessionId !== opts.except) {
@@ -187,8 +422,88 @@ export class Room {
     }
   }
 
+  /** Resend current round state to a (re)joining player; word choices if drawer. */
+  private sendRoundTo(player: Player): void {
+    const round = this.round;
+    if (!round) {
+      return;
+    }
+    player.send({ type: "roundStart", round: this.publicRound()! });
+    if (player.sessionId === round.drawerSessionId && round.phase === "choosing") {
+      player.send({ type: "wordChoices", words: round.choices });
+    }
+  }
+
+  // --- helpers ------------------------------------------------------------
+
+  private buildResults(round: Round): RoundResult[] {
+    return this.playerList.map(p => ({
+      sessionId: p.sessionId,
+      nickname: p.nickname,
+      guessed: round.guessed.has(p.sessionId),
+      points: 0,
+    }));
+  }
+
+  private scoreboard(): Score[] {
+    return this.playerList
+      .map(p => ({ sessionId: p.sessionId, nickname: p.nickname, score: p.score }))
+      .sort((a, b) => b.score - a.score);
+  }
+
+  private pickDrawer(): Player | undefined {
+    const eligible = this.playerList.filter(p => p.connected);
+    if (eligible.length === 0) {
+      return undefined;
+    }
+    const drawer = eligible[this.drawerCursor % eligible.length]!;
+    this.drawerCursor += 1;
+    return drawer;
+  }
+
+  private handleDrawerAbsence(sessionId: string): void {
+    if (this.status !== "playing" || !this.round) {
+      return;
+    }
+    if (this.connectedCount() < 2) {
+      this.endGame();
+      return;
+    }
+    if (this.round.drawerSessionId === sessionId && this.round.phase !== "intermission") {
+      this.endRound();
+    }
+  }
+
+  private connectedCount(): number {
+    return this.playerList.filter(p => p.connected).length;
+  }
+
+  private nicknameOf(sessionId: string): string {
+    return this.players.get(sessionId)?.nickname ?? "?";
+  }
+
   private nicknameTaken(nickname: string): boolean {
     const lower = nickname.toLowerCase();
     return this.playerList.some(p => p.nickname.toLowerCase() === lower);
+  }
+
+  private emit(event: GameEvent): void {
+    this.events?.(event);
+  }
+
+  private setTimer(ms: number, cb: () => void): void {
+    this.clearTimer();
+    this.timerCancel = this.scheduler.schedule(ms, cb);
+  }
+
+  private clearTimer(): void {
+    if (this.timerCancel) {
+      this.timerCancel();
+      this.timerCancel = null;
+    }
+  }
+
+  private now(): number {
+    return this.scheduler.now();
   }
 }

@@ -4,6 +4,7 @@ import websocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Db } from "./db/connection.js";
 import { RoomRegistry } from "./game/registry.js";
+import { WordPool } from "./game/words.js";
 import { registerRoomRoutes } from "./routes/rooms.js";
 import { registerGameSocket } from "./ws/handlers.js";
 
@@ -20,7 +21,8 @@ export interface AppDeps {
  * against an in-memory database with no static assets.
  */
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
-  const registry = new RoomRegistry();
+  const wordRows = await deps.db.selectFrom("words").select("word").execute();
+  const registry = new RoomRegistry({ words: new WordPool(wordRows.map(r => r.word)) });
   const app = Fastify({ logger: deps.logger ?? false });
 
   await app.register(websocket);

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Connection } from "../src/game/connection.js";
 import { RoomRegistry } from "../src/game/registry.js";
 import type { Room } from "../src/game/room.js";
+import { WordPool } from "../src/game/words.js";
 
 class FakeConn implements Connection {
   messages: ServerMessage[] = [];
@@ -35,7 +36,7 @@ describe("Room membership", () => {
   let room: Room;
 
   beforeEach(() => {
-    registry = new RoomRegistry();
+    registry = new RoomRegistry({ words: new WordPool(["cat", "dog", "sun", "moon"]) });
     room = registry.create({ maxPlayers: 2 });
   });
 
@@ -103,13 +104,13 @@ describe("Room membership", () => {
     expect(room.playerList).toHaveLength(1);
   });
 
-  it("broadcasts draw strokes to everyone but the sender", () => {
+  it("relays lobby chat to everyone", () => {
     const a = join(room, "ada");
     const b = join(room, "bob");
     const senderId = (a.result as { player: { sessionId: string } }).player.sessionId;
 
-    room.handleMessage(senderId, { type: "draw", stroke: { points: [[0, 0], [1, 1]], color: "#000", width: 2 } });
-    expect(a.conn.ofType("drawBroadcast")).toHaveLength(0);
-    expect(b.conn.ofType("drawBroadcast")).toHaveLength(1);
+    room.handleMessage(senderId, { type: "guess", text: "hi all" });
+    expect(a.conn.ofType("chat")).toHaveLength(1);
+    expect(b.conn.ofType("chat")).toHaveLength(1);
   });
 });
