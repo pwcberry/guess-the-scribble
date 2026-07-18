@@ -5,7 +5,7 @@ import stylistic from "@stylistic/eslint-plugin";
 import {defineConfig, globalIgnores} from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['**/dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -23,6 +23,13 @@ export default defineConfig([
     },
     rules: {
       "no-unused-vars": ["error", {varsIgnorePattern: "^[A-Z_]"}],
+    },
+  },
+  {
+    // Server and shared code runs on Node, not in the browser.
+    files: ['server/**/*.ts', 'shared/**/*.ts', '**/*.config.ts'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])
