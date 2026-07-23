@@ -105,10 +105,18 @@ export class GameClient {
     return () => this.statusListeners.delete(listener);
   }
 
-  /** Connect and join a room; reconnects automatically until `disconnect()`. */
+  /**
+   * Connect and join a room; reconnects automatically until `disconnect()`. If
+   * the socket is already open (e.g. retrying after a rejected nickname), the
+   * new `join` is sent over the existing connection instead of opening another.
+   */
   joinRoom(params: JoinParams): void {
     this.join = params;
     this.closedByUser = false;
+    if (this.status === "open") {
+      this.sendJoin();
+      return;
+    }
     this.attempt = 0;
     this.open();
   }

@@ -95,6 +95,23 @@ describe("GameClient", () => {
     ]);
   });
 
+  it("re-joins over the open socket when retrying (e.g. nickname taken)", () => {
+    const { client, sockets } = setup();
+    client.joinRoom({ roomCode: "ABC123", nickname: "Ada" });
+    sockets[0].emit("open");
+    sockets[0].receive({ type: "error", code: "nickname_taken", message: "taken" });
+
+    // Retry with a new nickname: no second socket, join sent on the same one.
+    client.joinRoom({ roomCode: "ABC123", nickname: "Ada2" });
+    expect(sockets).toHaveLength(1);
+    expect(sockets[0].sentMessages.at(-1)).toEqual({
+      type: "join",
+      roomCode: "ABC123",
+      nickname: "Ada2",
+      sessionId: undefined,
+    });
+  });
+
   it("dispatches inbound messages to subscribers", () => {
     const { client, sockets } = setup();
     const received: ServerMessage[] = [];

@@ -29,7 +29,8 @@ clean before it's considered done.
 ## Phase 2 — Client UI
 - [x] **2a** WS client + reconnection + state store
   - Done: `client/src/net/ws-client.ts` (typed `GameClient`: lifecycle, auto-reconnect w/ backoff, `sessionId` replay on rejoin), `client/src/state/store.ts` (pure `reduce` + reactive `GameStore` folding server messages into `GameState`). Canvas stroke messages pass through the reducer for the 2c component. Verified: 62 tests (adds 16 client tests: reducer + fake-socket reconnection), eslint clean, typecheck green.
-- [ ] **2b** Lobby/join (nickname + invite link)
+- [x] **2b** Lobby/join (nickname + invite link)
+  - Done: `net/api.ts` (`createRoom` → `POST /api/rooms`); `components/gts-app.ts` (root shell owning the `GameStore`, screen router join→lobby→game→end, `?room=` URL sync); `gts-join.ts` (nickname + create-with-settings / join-via-link); `gts-lobby.ts` (code, copyable invite link, roster, host Start); `lobby-helpers.ts` (pure URL/start-eligibility helpers). `GameClient.joinRoom` reuses the open socket on retry (nickname-taken). Replaced the Vite/Lit demo (`my-element` + assets removed), mounts `<gts-app>`. Verified: 72 tests (adds 20: lobby-helpers + open-socket rejoin), eslint clean, typecheck green, client build green, `POST /api/rooms` smoke test.
 - [ ] **2c** Drawing canvas (capture → send; render broadcasts)
 - [ ] **2d** Chat/guess component
 - [ ] **2e** Round HUD (blanks + timer) + scoreboard + game-end
