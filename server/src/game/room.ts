@@ -448,6 +448,7 @@ export class Room {
     }
     return {
       ordinal: round.ordinal,
+      rotationOrdinal: this.rotationOrdinal,
       totalRounds: this.settings.rounds,
       drawerSessionId: round.drawerSessionId,
       drawerNickname: this.nicknameOf(round.drawerSessionId),

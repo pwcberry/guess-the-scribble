@@ -53,16 +53,19 @@ ends with `npm run lint` + `npm test` + `npm run typecheck` clean.
   - Done: rotation queue + `rotationOrdinal` in `room.ts` (`nextDrawer` replaces `pickDrawer`;
     below-2 guard in `beginRound`). Updated `round.test.ts` (+3 tests) and `persistence.test.ts`
     (rounds:1 = 2-turn rotation). Verified: lint clean, typecheck green, 96/96 tests.
-- [ ] **R1b** Add `RoundPublic.rotationOrdinal`; HUD shows `rotationOrdinal` / `totalRounds`
+- [x] **R1b** Add `RoundPublic.rotationOrdinal`; HUD shows `rotationOrdinal` / `totalRounds`
   - Acceptance: wire adds the one field; `gts-hud` reads it; store/canvas unchanged (`ordinal`
     stays the turn reset key). zod unchanged (no inbound change).
   - Verify: `npm run typecheck` + `vitest run` clean; manual 2-player 2-round smoke ("Round 1/2"→"2/2").
   - Files: `shared/src/protocol.ts`, `server/src/game/room.ts`, `client/src/components/gts-hud.ts`
     (+ `hud-helpers.ts` / its test).
-- [ ] **R1c** Persist `round_ordinal` + `turn_count` (optional within R1; else fold into R2)
-  - Acceptance: `games.turn_count` recorded; each turn row carries its rotation ordinal.
-  - Verify: persistence test asserts counts for a known N×R game; `npm run db:reset`; `vitest run`.
-  - Files: `server/src/db/{schema,migrations,games,persistence}.ts`.
+  - Done: added `RoundPublic.rotationOrdinal`; `publicRound()` fills it; HUD reads it; 5 client
+    round fixtures updated. Verified: lint/typecheck clean, 96/96 tests. (Manual browser smoke pending.)
+- [~] **R1c** Persist `round_ordinal` + `turn_count` — **folded into PR-R2.**
+  Persistence is already semantically correct under the new model (`games.round_count` =
+  `settings.rounds` = rotations; turn rows carry the global `ordinal`). The nice-to-have
+  `round_ordinal`/`turn_count` columns land in R2 where the DB is renamed `rounds`→`turns`,
+  avoiding a throwaway migration.
 
 ### PR-R2 — mechanical `round`→`turn` rename (~38 files; agreed cap exception)
 - [ ] **R2a** Rename in `shared` + `server` (protocol types/messages, engine, db)

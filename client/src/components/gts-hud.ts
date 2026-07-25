@@ -55,7 +55,7 @@ export class GtsHud extends LitElement {
     return html`
       <section aria-label="Round status">
         <div class="top">
-          <span class="round">Round ${round.ordinal} of ${round.totalRounds}</span>
+          <span class="round">Round ${round.rotationOrdinal} of ${round.totalRounds}</span>
           ${drawing
             ? html`<span class="clock ${urgency}" role="timer" aria-label=${`${seconds} seconds left`}>${seconds}s</span>`
             : null}

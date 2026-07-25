@@ -19,6 +19,7 @@ function player(sessionId: string, over: Partial<PlayerView> = {}): PlayerView {
 function round(phase: RoundPhase, drawerSessionId: string): RoundPublic {
   return {
     ordinal: 1,
+    rotationOrdinal: 1,
     totalRounds: 3,
     drawerSessionId,
     drawerNickname: drawerSessionId,
