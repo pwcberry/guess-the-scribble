@@ -1,4 +1,3 @@
-
 import type { GameState } from "../state/store.ts";
 
 /** A canvas point, normalised to 0..1 on both axes (see `Stroke` in `@gts/shared`). */

@@ -5,6 +5,8 @@ import { parseRoomCode } from "./lobby-helpers.ts";
 import "./gts-join.ts";
 import "./gts-lobby.ts";
 import "./gts-canvas.ts";
+import "./gts-chat.ts";
+import type { GuessRequest } from "./gts-chat.ts";
 import type { JoinRequest } from "./gts-join.ts";
 
 /**
@@ -29,6 +31,7 @@ export class GtsApp extends LitElement {
     });
     this.addEventListener("gts-join", this._onJoin as EventListener);
     this.addEventListener("gts-start-game", this._onStartGame);
+    this.addEventListener("gts-guess", this._onGuess as EventListener);
   }
 
   disconnectedCallback() {
@@ -36,6 +39,7 @@ export class GtsApp extends LitElement {
     this.unsubscribe?.();
     this.removeEventListener("gts-join", this._onJoin as EventListener);
     this.removeEventListener("gts-start-game", this._onStartGame);
+    this.removeEventListener("gts-guess", this._onGuess as EventListener);
   }
 
   private readonly _onJoin = (event: CustomEvent<JoinRequest>) => {
@@ -44,6 +48,10 @@ export class GtsApp extends LitElement {
 
   private readonly _onStartGame = () => {
     this.store.client.startGame();
+  };
+
+  private readonly _onGuess = (event: CustomEvent<GuessRequest>) => {
+    this.store.client.guess(event.detail.text);
   };
 
   /** Reflect the joined room into the URL so the link can be shared/reloaded. */
@@ -81,8 +89,11 @@ export class GtsApp extends LitElement {
           return html`<gts-lobby .state=${state}></gts-lobby>`;
         case "playing":
           return html`
-            <gts-canvas .state=${state} .client=${this.store.client}></gts-canvas>
-            <p class="note">Chat and the round HUD arrive in tasks 2d–2e.</p>
+            <div class="game">
+              <gts-canvas .state=${state} .client=${this.store.client}></gts-canvas>
+              <gts-chat .state=${state}></gts-chat>
+            </div>
+            <p class="note">The round HUD and scoreboard arrive in task 2e.</p>
           `;
         case "ended":
           return this._renderEnded();
@@ -137,6 +148,30 @@ export class GtsApp extends LitElement {
     }
     main {
       padding: 24px 16px;
+    }
+    .game {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .game gts-canvas {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .game gts-chat {
+      flex: 0 0 auto;
+    }
+    @media (min-width: 860px) {
+      .game {
+        flex-direction: row;
+        align-items: stretch;
+      }
+      .game gts-chat {
+        flex: 0 0 320px;
+        align-self: stretch;
+      }
     }
     .placeholder,
     .ended {
