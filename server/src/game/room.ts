@@ -2,8 +2,8 @@ import type {
   ClientMessage,
   ErrorCode,
   PlayerView,
-  RoundPublic,
-  RoundResult,
+  TurnPublic,
+  TurnResult,
   RoomView,
   Score,
   ServerMessage,
@@ -13,7 +13,7 @@ import type { Connection } from "./connection.js";
 import type { GameEvent, GameEventSink, PersistedResult } from "./events.js";
 import { makeId, makeSessionId } from "./ids.js";
 import { Player } from "./player.js";
-import { Round } from "./round.js";
+import { Turn } from "./turn.js";
 import { type Cancel, type Scheduler, systemScheduler } from "./scheduler.js";
 import { drawerPoints, guesserPoints } from "./scoring.js";
 import type { RoomSettings } from "./settings.js";
@@ -25,7 +25,7 @@ export type RoomStatus = "lobby" | "playing" | "ended";
 const MAX_NICKNAME = 20;
 /** Seconds the drawer has to choose a word before one is auto-picked. */
 const CHOOSE_TIME_MS = 15_000;
-/** Pause between the round reveal and the next round starting. */
+/** Pause between the turn reveal and the next turn starting. */
 const INTERMISSION_MS = 5_000;
 
 export interface JoinRequest {
@@ -50,10 +50,11 @@ export interface RoomDeps {
 
 /**
  * Authoritative in-memory state and behaviour for one room: players, the running
- * game, and the round state machine (choose -> draw -> reveal -> next). All
- * outbound messages flow through players' Connections; timers use the injected
- * scheduler; durable writes happen via emitted events. The engine itself never
- * touches the transport or the database.
+ * game, and the turn state machine (choose -> draw -> reveal -> next). A round is
+ * a full rotation of turns (one per present player). All outbound messages flow
+ * through players' Connections; timers use the injected scheduler; durable writes
+ * happen via emitted events. The engine itself never touches the transport or the
+ * database.
  */
 export class Room {
   readonly id: string;
@@ -64,19 +65,19 @@ export class Room {
 
   hostSessionId: string | null = null;
   gameId: string | null = null;
-  round: Round | null = null;
+  turn: Turn | null = null;
 
   private readonly players = new Map<string, Player>();
   private readonly words: WordPool;
   private readonly scheduler: Scheduler;
   private readonly events?: GameEventSink;
 
-  /** Global turn index (1-based) — one drawer's period; `RoundPublic.ordinal`. */
+  /** Global turn index (1-based) — one drawer's period; `TurnPublic.turnOrdinal`. */
+  private turnOrdinal = 0;
+  /** Current round (full rotation, 1-based). A game runs `settings.rounds` rounds. */
   private roundOrdinal = 0;
-  /** Current rotation (1-based). A game runs `settings.rounds` rotations. */
-  private rotationOrdinal = 0;
-  /** SessionIds still to draw in the current rotation (one turn per present player). */
-  private rotationQueue: string[] = [];
+  /** SessionIds still to draw in the current round (one turn per present player). */
+  private roundQueue: string[] = [];
   private timerCancel: Cancel | null = null;
 
   constructor(deps: RoomDeps) {
@@ -110,8 +111,8 @@ export class Room {
         existing.conn = req.conn;
         existing.connected = true;
         existing.send({ type: "joined", sessionId: existing.sessionId, room: this.view() });
-        if (this.round) {
-          this.sendRoundTo(existing);
+        if (this.turn) {
+          this.sendTurnTo(existing);
         }
         this.broadcastState({ except: existing.sessionId });
         return { ok: true, player: existing, reconnected: true };
@@ -219,9 +220,9 @@ export class Room {
 
     this.status = "playing";
     this.gameId = makeId();
+    this.turnOrdinal = 0;
     this.roundOrdinal = 0;
-    this.rotationOrdinal = 0;
-    this.rotationQueue = [];
+    this.roundQueue = [];
     for (const p of this.players.values()) {
       p.score = 0;
     }
@@ -232,10 +233,10 @@ export class Room {
       startedAt: this.now(),
       roundCount: this.settings.rounds,
     });
-    this.beginRound();
+    this.beginTurn();
   }
 
-  private beginRound(): void {
+  private beginTurn(): void {
     // A game needs 2+ present players; a drop below that ends it early.
     if (this.connectedCount() < 2) {
       this.endGame();
@@ -246,73 +247,74 @@ export class Room {
       this.endGame();
       return;
     }
-    this.roundOrdinal += 1;
+    this.turnOrdinal += 1;
 
     for (const p of this.players.values()) {
       p.hasGuessed = false;
       p.guessedAt = null;
     }
 
-    this.round = new Round({
+    this.turn = new Turn({
       id: makeId(),
-      ordinal: this.roundOrdinal,
+      turnOrdinal: this.turnOrdinal,
+      roundOrdinal: this.roundOrdinal,
       drawerSessionId: drawer.sessionId,
       choices: this.words.pickChoices(3),
     });
 
-    this.broadcast({ type: "roundStart", round: this.publicRound()! });
-    drawer.send({ type: "wordChoices", words: this.round.choices });
+    this.broadcast({ type: "turnStart", turn: this.publicTurn()! });
+    drawer.send({ type: "wordChoices", words: this.turn.choices });
     this.setTimer(CHOOSE_TIME_MS, () => this.autoChoose());
   }
 
   chooseWord(sessionId: string, word: string): void {
-    const round = this.round;
-    if (!round || round.phase !== "choosing" || sessionId !== round.drawerSessionId) {
+    const turn = this.turn;
+    if (!turn || turn.phase !== "choosing" || sessionId !== turn.drawerSessionId) {
       return;
     }
-    if (!round.choices.includes(word)) {
+    if (!turn.choices.includes(word)) {
       return;
     }
     this.startDrawing(word);
   }
 
   private autoChoose(): void {
-    const round = this.round;
-    if (round && round.phase === "choosing" && round.choices.length > 0) {
-      this.startDrawing(round.choices[0]!);
+    const turn = this.turn;
+    if (turn && turn.phase === "choosing" && turn.choices.length > 0) {
+      this.startDrawing(turn.choices[0]!);
     }
   }
 
   private startDrawing(word: string): void {
-    const round = this.round!;
-    round.word = word;
-    round.phase = "drawing";
-    round.startedAt = this.now();
-    round.endsAt = round.startedAt + this.settings.drawTimeSec * 1000;
+    const turn = this.turn!;
+    turn.word = word;
+    turn.phase = "drawing";
+    turn.startedAt = this.now();
+    turn.endsAt = turn.startedAt + this.settings.drawTimeSec * 1000;
 
-    this.broadcast({ type: "roundStart", round: this.publicRound()! });
-    this.setTimer(this.settings.drawTimeSec * 1000, () => this.endRound());
+    this.broadcast({ type: "turnStart", turn: this.publicTurn()! });
+    this.setTimer(this.settings.drawTimeSec * 1000, () => this.endTurn());
   }
 
-  private endRound(): void {
-    const round = this.round;
-    if (!round) {
+  private endTurn(): void {
+    const turn = this.turn;
+    if (!turn) {
       return;
     }
     this.clearTimer();
-    round.phase = "intermission";
+    turn.phase = "intermission";
 
     // Drawer earns in proportion to how many guessers got it.
-    const totalGuessers = this.playerList.filter(p => p.sessionId !== round.drawerSessionId).length;
-    round.drawerPoints = drawerPoints(round.guessed.size, totalGuessers);
-    const drawer = this.players.get(round.drawerSessionId);
+    const totalGuessers = this.playerList.filter(p => p.sessionId !== turn.drawerSessionId).length;
+    turn.drawerPoints = drawerPoints(turn.guessed.size, totalGuessers);
+    const drawer = this.players.get(turn.drawerSessionId);
     if (drawer) {
-      drawer.score += round.drawerPoints;
+      drawer.score += turn.drawerPoints;
     }
 
-    const word = round.word ?? round.choices[0] ?? "";
-    const persisted = this.buildPersistedResults(round);
-    const results: RoundResult[] = persisted.map(r => ({
+    const word = turn.word ?? turn.choices[0] ?? "";
+    const persisted = this.buildPersistedResults(turn);
+    const results: TurnResult[] = persisted.map(r => ({
       sessionId: r.sessionId,
       nickname: r.nickname,
       guessed: r.guessed,
@@ -320,27 +322,28 @@ export class Room {
     }));
     const scores = this.scoreboard();
 
-    this.broadcast({ type: "roundEnd", word, results, scores });
+    this.broadcast({ type: "turnEnd", word, results, scores });
     this.emit({
-      type: "roundEnded",
+      type: "turnEnded",
       data: {
         gameId: this.gameId!,
-        roundId: round.id,
-        ordinal: round.ordinal,
-        drawerNickname: this.nicknameOf(round.drawerSessionId),
+        turnId: turn.id,
+        turnOrdinal: turn.turnOrdinal,
+        roundOrdinal: turn.roundOrdinal,
+        drawerNickname: this.nicknameOf(turn.drawerSessionId),
         word,
-        drawing: [...round.strokes],
+        drawing: [...turn.strokes],
         results: persisted,
       },
     });
 
-    this.setTimer(INTERMISSION_MS, () => this.beginRound());
+    this.setTimer(INTERMISSION_MS, () => this.beginTurn());
   }
 
   private endGame(): void {
     this.clearTimer();
     this.status = "ended";
-    this.round = null;
+    this.turn = null;
     const scores = this.scoreboard();
     this.broadcast({ type: "gameEnd", scores });
     this.emit({
@@ -355,76 +358,76 @@ export class Room {
   // --- drawing & guessing -------------------------------------------------
 
   private handleDraw(sessionId: string, stroke: Stroke): void {
-    const round = this.round;
-    if (!round || round.phase !== "drawing" || sessionId !== round.drawerSessionId) {
+    const turn = this.turn;
+    if (!turn || turn.phase !== "drawing" || sessionId !== turn.drawerSessionId) {
       return;
     }
-    round.strokes.push(stroke);
+    turn.strokes.push(stroke);
     this.broadcast({ type: "drawBroadcast", stroke }, { except: sessionId });
   }
 
   private handleClear(sessionId: string): void {
-    const round = this.round;
-    if (!round || round.phase !== "drawing" || sessionId !== round.drawerSessionId) {
+    const turn = this.turn;
+    if (!turn || turn.phase !== "drawing" || sessionId !== turn.drawerSessionId) {
       return;
     }
-    round.strokes.length = 0;
+    turn.strokes.length = 0;
     this.broadcast({ type: "clearCanvas" }, { except: sessionId });
   }
 
   private handleUndo(sessionId: string): void {
-    const round = this.round;
-    if (!round || round.phase !== "drawing" || sessionId !== round.drawerSessionId) {
+    const turn = this.turn;
+    if (!turn || turn.phase !== "drawing" || sessionId !== turn.drawerSessionId) {
       return;
     }
-    round.strokes.pop();
+    turn.strokes.pop();
     // Replay the remaining strokes so all guessers stay in sync.
     this.broadcast({ type: "clearCanvas" }, { except: sessionId });
-    for (const stroke of round.strokes) {
+    for (const stroke of turn.strokes) {
       this.broadcast({ type: "drawBroadcast", stroke }, { except: sessionId });
     }
   }
 
   private handleGuess(player: Player, text: string): void {
-    const round = this.round;
+    const turn = this.turn;
 
     // Outside an active drawing phase, or from a player who already guessed:
     // treat as ordinary chat (drawer chat is suppressed to avoid leaks).
-    if (!round || round.phase !== "drawing" || !round.word) {
+    if (!turn || turn.phase !== "drawing" || !turn.word) {
       this.broadcast({ type: "chat", nickname: player.nickname, text, kind: "chat" });
       return;
     }
-    if (player.sessionId === round.drawerSessionId || player.hasGuessed) {
+    if (player.sessionId === turn.drawerSessionId || player.hasGuessed) {
       return;
     }
 
-    if (isCorrectGuess(text, round.word)) {
-      const remaining = Math.max(0, (round.endsAt ?? this.now()) - this.now());
+    if (isCorrectGuess(text, turn.word)) {
+      const remaining = Math.max(0, (turn.endsAt ?? this.now()) - this.now());
       const points = guesserPoints(remaining, this.settings.drawTimeSec * 1000);
       player.hasGuessed = true;
       player.guessedAt = this.now();
       player.score += points;
-      round.guessed.set(player.sessionId, points);
+      turn.guessed.set(player.sessionId, points);
 
       player.send({ type: "guessResult", correct: true });
       this.broadcast({ type: "correctGuess", sessionId: player.sessionId, nickname: player.nickname });
 
-      if (this.allGuessed(round)) {
-        this.endRound();
+      if (this.allGuessed(turn)) {
+        this.endTurn();
       }
       return;
     }
 
     // Wrong guess: everyone sees it as chat; the guesser gets a private "close" nudge.
     this.broadcast({ type: "chat", nickname: player.nickname, text, kind: "chat" });
-    if (isCloseGuess(text, round.word)) {
+    if (isCloseGuess(text, turn.word)) {
       player.send({ type: "chat", nickname: player.nickname, text: "You're close!", kind: "close" });
     }
   }
 
-  private allGuessed(round: Round): boolean {
+  private allGuessed(turn: Turn): boolean {
     const guessers = this.playerList.filter(
-      p => p.connected && p.sessionId !== round.drawerSessionId,
+      p => p.connected && p.sessionId !== turn.drawerSessionId,
     );
     return guessers.length > 0 && guessers.every(p => p.hasGuessed);
   }
@@ -437,25 +440,25 @@ export class Room {
       status: this.status,
       settings: this.settings,
       players: this.playerList.map(p => this.viewOf(p)),
-      round: this.publicRound(),
+      turn: this.publicTurn(),
     };
   }
 
-  publicRound(): RoundPublic | null {
-    const round = this.round;
-    if (!round) {
+  publicTurn(): TurnPublic | null {
+    const turn = this.turn;
+    if (!turn) {
       return null;
     }
     return {
-      ordinal: round.ordinal,
-      rotationOrdinal: this.rotationOrdinal,
+      turnOrdinal: turn.turnOrdinal,
+      roundOrdinal: turn.roundOrdinal,
       totalRounds: this.settings.rounds,
-      drawerSessionId: round.drawerSessionId,
-      drawerNickname: this.nicknameOf(round.drawerSessionId),
-      wordPattern: round.word ? maskWord(round.word) : "",
-      wordLength: round.word ? letterCount(round.word) : 0,
-      phase: round.phase,
-      endsAt: round.endsAt,
+      drawerSessionId: turn.drawerSessionId,
+      drawerNickname: this.nicknameOf(turn.drawerSessionId),
+      wordPattern: turn.word ? maskWord(turn.word) : "",
+      wordLength: turn.word ? letterCount(turn.word) : 0,
+      phase: turn.phase,
+      endsAt: turn.endsAt,
     };
   }
 
@@ -470,7 +473,7 @@ export class Room {
   protected viewOf(player: Player): PlayerView {
     return player.view({
       isHost: player.sessionId === this.hostSessionId,
-      isDrawer: this.round?.drawerSessionId === player.sessionId,
+      isDrawer: this.turn?.drawerSessionId === player.sessionId,
     });
   }
 
@@ -483,29 +486,29 @@ export class Room {
     }
   }
 
-  /** Resend current round state to a (re)joining player; word choices if drawer. */
-  private sendRoundTo(player: Player): void {
-    const round = this.round;
-    if (!round) {
+  /** Resend current turn state to a (re)joining player; word choices if drawer. */
+  private sendTurnTo(player: Player): void {
+    const turn = this.turn;
+    if (!turn) {
       return;
     }
-    player.send({ type: "roundStart", round: this.publicRound()! });
-    if (player.sessionId === round.drawerSessionId && round.phase === "choosing") {
-      player.send({ type: "wordChoices", words: round.choices });
+    player.send({ type: "turnStart", turn: this.publicTurn()! });
+    if (player.sessionId === turn.drawerSessionId && turn.phase === "choosing") {
+      player.send({ type: "wordChoices", words: turn.choices });
     }
   }
 
   // --- helpers ------------------------------------------------------------
 
-  private buildPersistedResults(round: Round): PersistedResult[] {
+  private buildPersistedResults(turn: Turn): PersistedResult[] {
     return this.playerList.map(p => ({
       sessionId: p.sessionId,
       nickname: p.nickname,
-      guessed: round.guessed.has(p.sessionId),
+      guessed: turn.guessed.has(p.sessionId),
       guessedAt: p.guessedAt,
-      points: p.sessionId === round.drawerSessionId
-        ? round.drawerPoints
-        : round.guessed.get(p.sessionId) ?? 0,
+      points: p.sessionId === turn.drawerSessionId
+        ? turn.drawerPoints
+        : turn.guessed.get(p.sessionId) ?? 0,
     }));
   }
 
@@ -516,40 +519,40 @@ export class Room {
   }
 
   /**
-   * The next drawer, or undefined when the game is over. A rotation is one turn
-   * per present player; when the queue empties we start the next rotation
+   * The next drawer, or undefined when the game is over. A round is one turn
+   * per present player; when the queue empties we start the next round
    * (re-snapshotting present players, so leavers are dropped and joiners picked
-   * up) until `settings.rounds` rotations have been played.
+   * up) until `settings.rounds` rounds have been played.
    */
   private nextDrawer(): Player | undefined {
     for (;;) {
-      while (this.rotationQueue.length > 0) {
-        const player = this.players.get(this.rotationQueue.shift()!);
+      while (this.roundQueue.length > 0) {
+        const player = this.players.get(this.roundQueue.shift()!);
         if (player?.connected) {
           return player;
         }
       }
-      if (this.rotationOrdinal >= this.settings.rounds) {
+      if (this.roundOrdinal >= this.settings.rounds) {
         return undefined;
       }
-      this.rotationOrdinal += 1;
-      this.rotationQueue = this.playerList.filter(p => p.connected).map(p => p.sessionId);
-      if (this.rotationQueue.length === 0) {
+      this.roundOrdinal += 1;
+      this.roundQueue = this.playerList.filter(p => p.connected).map(p => p.sessionId);
+      if (this.roundQueue.length === 0) {
         return undefined;
       }
     }
   }
 
   private handleDrawerAbsence(sessionId: string): void {
-    if (this.status !== "playing" || !this.round) {
+    if (this.status !== "playing" || !this.turn) {
       return;
     }
     if (this.connectedCount() < 2) {
       this.endGame();
       return;
     }
-    if (this.round.drawerSessionId === sessionId && this.round.phase !== "intermission") {
-      this.endRound();
+    if (this.turn.drawerSessionId === sessionId && this.turn.phase !== "intermission") {
+      this.endTurn();
     }
   }
 

@@ -27,14 +27,14 @@ describe("Round lifecycle", () => {
     expect(bob.conn.last("error")?.code).toBe("not_allowed");
   });
 
-  it("starts a round: drawer gets word choices, guessers do not", () => {
+  it("starts a turn: drawer gets word choices, guessers do not", () => {
     const ada = joinRoom(room, "ada");
     const bob = joinRoom(room, "bob");
     room.startGame(ada.sessionId);
 
-    const start = ada.conn.last("roundStart")!;
-    expect(start.round.phase).toBe("choosing");
-    expect(start.round.drawerSessionId).toBe(ada.sessionId);
+    const start = ada.conn.last("turnStart")!;
+    expect(start.turn.phase).toBe("choosing");
+    expect(start.turn.drawerSessionId).toBe(ada.sessionId);
 
     // Drawer (ada) is offered choices; guesser (bob) never receives the word.
     expect(ada.conn.ofType("wordChoices")).toHaveLength(1);
@@ -49,7 +49,7 @@ describe("Round lifecycle", () => {
     const word = ada.conn.last("wordChoices")!.words[0]!;
     room.chooseWord(ada.sessionId, word);
 
-    const drawing = bob.conn.last("roundStart")!.round;
+    const drawing = bob.conn.last("turnStart")!.turn;
     expect(drawing.phase).toBe("drawing");
     expect(drawing.wordLength).toBe(word.replace(/\s/g, "").length);
     expect(drawing.endsAt).toBe(60_000);
@@ -76,26 +76,26 @@ describe("Round lifecycle", () => {
     const ada = joinRoom(room, "ada");
     joinRoom(room, "bob");
     room.startGame(ada.sessionId);
-    expect(room.round?.phase).toBe("choosing");
+    expect(room.turn?.phase).toBe("choosing");
 
     clock.advance(15_000);
-    expect(room.round?.phase).toBe("drawing");
-    expect(room.round?.word).not.toBeNull();
+    expect(room.turn?.phase).toBe("drawing");
+    expect(room.turn?.word).not.toBeNull();
   });
 
-  it("ends the round on the timer, revealing the word, then rotates the drawer", () => {
+  it("ends the turn on the timer, revealing the word, then rotates the drawer", () => {
     const ada = joinRoom(room, "ada");
     const bob = joinRoom(room, "bob");
     room.startGame(ada.sessionId);
     const word = ada.conn.last("wordChoices")!.words[0]!;
     room.chooseWord(ada.sessionId, word);
 
-    clock.advance(60_000); // drawing time expires -> round ends
-    expect(bob.conn.last("roundEnd")!.word).toBe(word);
+    clock.advance(60_000); // drawing time expires -> turn ends
+    expect(bob.conn.last("turnEnd")!.word).toBe(word);
 
-    clock.advance(5_000); // intermission -> round 2 begins, drawer rotates to bob
-    expect(room.round?.ordinal).toBe(2);
-    expect(room.round?.drawerSessionId).toBe(bob.sessionId);
+    clock.advance(5_000); // intermission -> turn 2 begins, drawer rotates to bob
+    expect(room.turn?.turnOrdinal).toBe(2);
+    expect(room.turn?.drawerSessionId).toBe(bob.sessionId);
   });
 
   it("plays rounds as full rotations: 2 rounds x 2 players = 4 turns, each draws twice", () => {
@@ -106,7 +106,7 @@ describe("Round lifecycle", () => {
     const drawers: string[] = [];
     // Play turns until the game ends; record each turn's drawer.
     while (room.status === "playing") {
-      const drawerId = room.round!.drawerSessionId;
+      const drawerId = room.turn!.drawerSessionId;
       drawers.push(drawerId);
       room.chooseWord(drawerId, byId.get(drawerId)!.last("wordChoices")!.words[0]!);
       clock.advance(60_000); // drawing time -> turn ends
@@ -132,7 +132,7 @@ describe("Round lifecycle", () => {
 
     let turns = 0;
     while (big.status === "playing") {
-      const drawerId = big.round!.drawerSessionId;
+      const drawerId = big.turn!.drawerSessionId;
       turns += 1;
       big.chooseWord(drawerId, byId.get(drawerId)!.last("wordChoices")!.words[0]!);
       clock.advance(60_000);
@@ -151,7 +151,7 @@ describe("Round lifecycle", () => {
     room.chooseWord(ada.sessionId, ada.conn.last("wordChoices")!.words[0]!);
     clock.advance(60_000);
     room.leave(bob.sessionId);
-    clock.advance(5_000); // intermission fires beginRound with only 1 player
+    clock.advance(5_000); // intermission fires beginTurn with only 1 player
 
     expect(room.status).toBe("ended");
     expect(ada.conn.ofType("gameEnd")).toHaveLength(1);

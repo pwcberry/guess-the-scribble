@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Status (see `.claude/tasks/todo.md` for the live plan):
 
-- **Server game engine — done (Phases 0–1).** Rooms/players, invite codes, WS join + reconnection, round lifecycle (drawer rotation, word choices, timers), server-side guess matching + time-decay scoring, SQLite persistence of games/rounds/results/drawings, and a **frozen** WS protocol with zod validation at the trust boundary.
-- **Client — greenfield (Phase 2, in progress).** `client/src/my-element.ts` is still the generated Vite + Lit demo. The real WS client, lobby/join, drawing canvas, chat/guess, and round HUD/scoreboard all still need building.
+- **Server game engine — done (Phases 0–1).** Rooms/players, invite codes, WS join + reconnection, turn lifecycle (drawer rotation, word choices, timers), server-side guess matching + time-decay scoring, SQLite persistence of games/turns/results/drawings, and a **frozen** WS protocol with zod validation at the trust boundary. A **turn** is one drawer's period; a **round** is a full rotation (one turn per present player); a game runs `settings.rounds` rounds and ends after the last turn of the last round.
+- **Client — greenfield (Phase 2, in progress).** `client/src/my-element.ts` is still the generated Vite + Lit demo. The real WS client, lobby/join, drawing canvas, chat/guess, and turn HUD/scoreboard all still need building.
 - **Not started (Phase 3):** Playwright e2e, Dockerfile/compose, deployment.
 
 ## Repository layout
@@ -61,14 +61,14 @@ Fix any failures before committing rather than committing around them. Do not co
 ## Server
 
 - **Fastify** (`server/src/app.ts` `buildApp()`) with `@fastify/websocket` (game endpoint at `WS_PATH` = `/ws`) and `@fastify/static` (serves the built client with an SPA fallback to `index.html` for non-`/api`, non-`/ws` GET routes). `buildApp` is **dependency-injected** (`db`, optional `clientDist`) so integration tests run it against an in-memory DB with no static assets. `server/src/index.ts` is the thin bootstrap: open DB → migrate → seed → `buildApp` → listen.
-- **Game engine (`server/src/game`).** `RoomRegistry` indexes active rooms by invite code and injects shared deps (word pool, `Scheduler` clock, persistence event sink) into each `Room`. `Room` owns **all** game state and outbound messages — the WS layer is a dumb transport adapter. Round state machine: `choosing → drawing → intermission`. The `Scheduler` is **injectable** (`FakeScheduler` in tests) so round/timer logic is deterministic.
+- **Game engine (`server/src/game`).** `RoomRegistry` indexes active rooms by invite code and injects shared deps (word pool, `Scheduler` clock, persistence event sink) into each `Room`. `Room` owns **all** game state and outbound messages — the WS layer is a dumb transport adapter. Per-turn state machine: `choosing → drawing → intermission`; turns are grouped into rounds (full rotations) via a per-round drawer queue. The `Scheduler` is **injectable** (`FakeScheduler` in tests) so turn/timer logic is deterministic.
 - **WS handlers (`server/src/ws/handlers.ts`).** Each socket must send `join` first; on success it's bound to a room + session and further messages dispatch to `room.handleMessage(sessionId, msg)`. Inbound messages are validated by the **zod** schema in `ws/schema.ts` (`parseClientMessage`) at the trust boundary — malformed/invalid are rejected with an `error` message.
 - **Persistence (`server/src/db`).** SQLite via **`better-sqlite3`** + **`kysely`** (typed query builder). WAL + FK pragmas, inline migrations, word seed. `createGameEventSink` chains ordered async writes off engine events and exposes `flush()` for tests/shutdown. Reads `DB_FILE` (default `<repo>/data/gts.db`, `:memory:` for ephemeral). Server code uses `nodenext` ESM — local imports carry `.js` specifiers that point at `.ts` sources; don't import client (bundler-mode) `.ts` files here.
 
 ## Shared protocol (`@gts/shared`)
 
-- `shared/src/protocol.ts` is the **single source of truth** for the WS protocol: `ClientMessage`, `ServerMessage`, and the view types (`RoomView`, `PlayerView`, `RoundPublic`, …). Both client and server import it.
-- **The server is authoritative and never leaks the secret word to non-drawers.** `RoundPublic` carries only `wordPattern` (blanks) + `wordLength`; the full `word` appears only in `roundEnd`. Preserve this invariant in any protocol or engine change.
+- `shared/src/protocol.ts` is the **single source of truth** for the WS protocol: `ClientMessage`, `ServerMessage`, and the view types (`RoomView`, `PlayerView`, `TurnPublic`, …). Both client and server import it.
+- **The server is authoritative and never leaks the secret word to non-drawers.** `TurnPublic` carries only `wordPattern` (blanks) + `wordLength`; the full `word` appears only in `turnEnd`. Preserve this invariant in any protocol or engine change.
 - **The protocol is FROZEN (Phase 1f).** Any change to `protocol.ts` must be mirrored in the server's zod schema (`server/src/ws/schema.ts`). Treat protocol changes as "ask first".
 - Stroke points are **normalised to 0..1** (resolution-independent) so the canvas can render at any size.
 

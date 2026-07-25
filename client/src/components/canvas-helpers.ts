@@ -72,20 +72,20 @@ export function normalizePoint(clientX: number, clientY: number, rect: RectLike)
   return [clamp01(x), clamp01(y)];
 }
 
-/** Session id of the current round's drawer, or null when no round is active. */
+/** Session id of the current turn's drawer, or null when no turn is active. */
 export function currentDrawerId(state: GameState): string | null {
-  return state.room?.round?.drawerSessionId ?? null;
+  return state.room?.turn?.drawerSessionId ?? null;
 }
 
-/** Whether this client is the drawer of the current round. */
+/** Whether this client is the drawer of the current turn. */
 export function isLocalDrawer(state: GameState): boolean {
   const drawer = currentDrawerId(state);
   return drawer !== null && drawer === state.sessionId;
 }
 
-/** Whether the current round is in its active drawing phase. */
+/** Whether the current turn is in its active drawing phase. */
 export function isDrawingPhase(state: GameState): boolean {
-  return state.room?.round?.phase === "drawing";
+  return state.room?.turn?.phase === "drawing";
 }
 
 /** Whether this client may draw right now (drawer, during the drawing phase). */
@@ -95,13 +95,13 @@ export function canDraw(state: GameState): boolean {
 
 /** Nickname of the current drawer, for captions like "Ada is drawing". */
 export function drawerNickname(state: GameState): string | null {
-  return state.room?.round?.drawerNickname ?? null;
+  return state.room?.turn?.drawerNickname ?? null;
 }
 
 /**
- * Identity of the current round, used to reset the canvas when the round
- * changes. Null when no round is active. Ordinals are unique within a game.
+ * Identity of the current turn, used to reset the canvas when the turn
+ * changes. Null when no turn is active. Turn ordinals are unique within a game.
  */
-export function roundKey(state: GameState): number | null {
-  return state.room?.round?.ordinal ?? null;
+export function turnKey(state: GameState): number | null {
+  return state.room?.turn?.turnOrdinal ?? null;
 }

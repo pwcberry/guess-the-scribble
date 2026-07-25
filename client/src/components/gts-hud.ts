@@ -1,16 +1,16 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { RoundPublic } from "@gts/shared";
-import type { GameState, RoundOutcome } from "../state/store.ts";
+import type { TurnPublic } from "@gts/shared";
+import type { GameState, TurnOutcome } from "../state/store.ts";
 import { drawerNickname, isLocalDrawer } from "./canvas-helpers.ts";
 import { remainingSeconds, timerFraction } from "./hud-helpers.ts";
 
 /**
- * The round heads-up display: which round it is, who's drawing, the word (shown
+ * The turn heads-up display: which round it is, who's drawing, the word (shown
  * in full to the drawer, as blanks to everyone else), and a live countdown.
- * Between rounds it becomes the reveal panel — the server only broadcasts
- * `roundEnd` (not a phase change), so the reveal is keyed off `lastRound`, not
- * the round phase, which still reads "drawing" on the client during intermission.
+ * Between turns it becomes the reveal panel — the server only broadcasts
+ * `turnEnd` (not a phase change), so the reveal is keyed off `lastTurn`, not
+ * the turn phase, which still reads "drawing" on the client during intermission.
  */
 @customElement("gts-hud")
 export class GtsHud extends LitElement {
@@ -35,33 +35,33 @@ export class GtsHud extends LitElement {
   }
 
   render() {
-    const round = this.state.room?.round ?? null;
-    if (this.state.lastRound) {
-      return this.renderReveal(this.state.lastRound);
+    const turn = this.state.room?.turn ?? null;
+    if (this.state.lastTurn) {
+      return this.renderReveal(this.state.lastTurn);
     }
-    if (!round) {
+    if (!turn) {
       return null;
     }
-    return this.renderActive(round);
+    return this.renderActive(turn);
   }
 
-  private renderActive(round: RoundPublic) {
-    const drawing = round.phase === "drawing";
+  private renderActive(turn: TurnPublic) {
+    const drawing = turn.phase === "drawing";
     const totalMs = (this.state.room?.settings.drawTimeSec ?? 0) * 1000;
-    const seconds = remainingSeconds(round.endsAt, this.now);
-    const fraction = timerFraction(round.endsAt, this.now, totalMs);
+    const seconds = remainingSeconds(turn.endsAt, this.now);
+    const fraction = timerFraction(turn.endsAt, this.now, totalMs);
     const urgency = fraction > 0.5 ? "calm" : fraction > 0.2 ? "warn" : "urgent";
 
     return html`
       <section aria-label="Round status">
         <div class="top">
-          <span class="round">Round ${round.rotationOrdinal} of ${round.totalRounds}</span>
+          <span class="round">Round ${turn.roundOrdinal} of ${turn.totalRounds}</span>
           ${drawing
             ? html`<span class="clock ${urgency}" role="timer" aria-label=${`${seconds} seconds left`}>${seconds}s</span>`
             : null}
         </div>
 
-        ${this.renderWord(round, drawing)}
+        ${this.renderWord(turn, drawing)}
 
         ${drawing
           ? html`<div class="bar" role="presentation"><span class="fill ${urgency}" style="width:${(fraction * 100).toFixed(1)}%"></span></div>`
@@ -70,7 +70,7 @@ export class GtsHud extends LitElement {
     `;
   }
 
-  private renderWord(round: RoundPublic, drawing: boolean) {
+  private renderWord(turn: TurnPublic, drawing: boolean) {
     const drawer = isLocalDrawer(this.state);
     const name = drawerNickname(this.state) ?? "The drawer";
 
@@ -92,12 +92,12 @@ export class GtsHud extends LitElement {
     return html`
       <div class="word">
         <span class="label">${name} is drawing</span>
-        <span class="pattern" aria-label=${`${round.wordLength} letters`}>${round.wordPattern}</span>
+        <span class="pattern" aria-label=${`${turn.wordLength} letters`}>${turn.wordPattern}</span>
       </div>
     `;
   }
 
-  private renderReveal(outcome: RoundOutcome) {
+  private renderReveal(outcome: TurnOutcome) {
     const results = [...outcome.results].sort((a, b) => b.points - a.points);
     return html`
       <section class="reveal" role="status">
@@ -111,7 +111,7 @@ export class GtsHud extends LitElement {
             </li>
           `)}
         </ul>
-        <p class="next">Next round starting…</p>
+        <p class="next">Next turn starting…</p>
       </section>
     `;
   }

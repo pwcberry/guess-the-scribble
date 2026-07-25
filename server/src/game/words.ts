@@ -1,7 +1,7 @@
 /**
  * A pool of drawable words. Loaded once from the database at startup (see
  * db/games.ts word loading) and used to offer the drawer a few choices per
- * round.
+ * turn.
  */
 export class WordPool {
   private readonly words: string[];

@@ -2,9 +2,11 @@ import type { Generated } from "kysely";
 
 /**
  * Kysely table definitions for the SQLite database. The game is anonymous but
- * persistent: rooms, games, rounds, results, per-game players, and the seeded
- * word list all live here. JSON payloads (`settings`, `drawing`) are stored as
- * TEXT and (de)serialised at the query boundary. Timestamps are epoch millis.
+ * persistent: rooms, games, turns, results, per-game players, and the seeded
+ * word list all live here. A round is a full rotation of turns; each turn row
+ * records the round (rotation) it belonged to. JSON payloads (`settings`,
+ * `drawing`) are stored as TEXT and (de)serialised at the query boundary.
+ * Timestamps are epoch millis.
  */
 
 export interface RoomsTable {
@@ -23,19 +25,22 @@ export interface GamesTable {
   round_count: number;
 }
 
-export interface RoundsTable {
+export interface TurnsTable {
   id: string;
   game_id: string;
+  /** Round (full rotation) this turn belonged to (1-based). */
+  round_ordinal: number;
   drawer_nickname: string;
   word: string;
-  /** Replayable stroke list, JSON-encoded. Null until the round is drawn. */
+  /** Replayable stroke list, JSON-encoded. Null until the turn is drawn. */
   drawing: string | null;
+  /** Global turn index (1-based). */
   ordinal: number;
 }
 
-export interface RoundResultsTable {
+export interface TurnResultsTable {
   id: Generated<number>;
-  round_id: string;
+  turn_id: string;
   nickname: string;
   guessed_at: number | null;
   points: number;
@@ -59,8 +64,8 @@ export interface WordsTable {
 export interface Database {
   rooms: RoomsTable;
   games: GamesTable;
-  rounds: RoundsTable;
-  round_results: RoundResultsTable;
+  turns: TurnsTable;
+  turn_results: TurnResultsTable;
   players: PlayersTable;
   words: WordsTable;
 }

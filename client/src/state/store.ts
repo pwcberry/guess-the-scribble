@@ -3,7 +3,7 @@ import type {
   ErrorCode,
   PlayerView,
   RoomView,
-  RoundResult,
+  TurnResult,
   Score,
   ServerMessage,
 } from "@gts/shared";
@@ -17,10 +17,10 @@ export interface ChatEntry {
   kind: ChatKind;
 }
 
-/** Outcome of the most recently finished round, for the reveal screen. */
-export interface RoundOutcome {
+/** Outcome of the most recently finished turn, for the reveal screen. */
+export interface TurnOutcome {
   word: string;
-  results: RoundResult[];
+  results: TurnResult[];
 }
 
 /** Everything the UI needs to render, derived from the server's messages. */
@@ -35,7 +35,7 @@ export interface GameState {
    *  one this client chose. */
   myWord: string | null;
   chat: ChatEntry[];
-  lastRound: RoundOutcome | null;
+  lastTurn: TurnOutcome | null;
   finalScores: Score[] | null;
   error: { code: ErrorCode; message: string } | null;
   /** Monotonic id source for chat entries; not for display. */
@@ -49,7 +49,7 @@ export const initialState: GameState = {
   wordChoices: [],
   myWord: null,
   chat: [],
-  lastRound: null,
+  lastTurn: null,
   finalScores: null,
   error: null,
   nextChatId: 1,
@@ -98,12 +98,12 @@ export function reduce(state: GameState, message: ServerMessage): GameState {
       return { ...state, room: { ...state.room, players } };
     }
 
-    case "roundStart": {
-      const room = state.room ? { ...state.room, status: "playing" as const, round: message.round } : state.room;
-      // A new round opens in the "choosing" phase; the later drawing-phase
-      // roundStart (fired once the drawer picks) must preserve the chosen word.
-      const myWord = message.round.phase === "choosing" ? null : state.myWord;
-      return { ...state, room, wordChoices: [], lastRound: null, myWord };
+    case "turnStart": {
+      const room = state.room ? { ...state.room, status: "playing" as const, turn: message.turn } : state.room;
+      // A new turn opens in the "choosing" phase; the later drawing-phase
+      // turnStart (fired once the drawer picks) must preserve the chosen word.
+      const myWord = message.turn.phase === "choosing" ? null : state.myWord;
+      return { ...state, room, wordChoices: [], lastTurn: null, myWord };
     }
 
     case "wordChoices":
@@ -126,7 +126,7 @@ export function reduce(state: GameState, message: ServerMessage): GameState {
       return { ...withChat, room };
     }
 
-    case "roundEnd": {
+    case "turnEnd": {
       const scores = new Map(message.scores.map(s => [s.sessionId, s.score]));
       const room = state.room
         ? mapPlayers(state.room, p => ({ ...p, score: scores.get(p.sessionId) ?? p.score }))
@@ -136,7 +136,7 @@ export function reduce(state: GameState, message: ServerMessage): GameState {
         text: `The word was "${message.word}".`,
         kind: "system",
       });
-      return { ...withChat, lastRound: { word: message.word, results: message.results }, myWord: null };
+      return { ...withChat, lastTurn: { word: message.word, results: message.results }, myWord: null };
     }
 
     case "gameEnd": {
@@ -177,7 +177,7 @@ export class GameStore {
   /**
    * The local drawer commits to a word. Remembered locally (the protocol never
    * echoes the word back to the drawer) before telling the server, so the HUD
-   * can show it for the rest of the round.
+   * can show it for the rest of the turn.
    */
   chooseWord(word: string): void {
     this.set({ ...this.state, myWord: word });

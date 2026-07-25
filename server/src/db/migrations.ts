@@ -28,9 +28,10 @@ const initial: Migration = {
       .execute();
 
     await db.schema
-      .createTable("rounds")
+      .createTable("turns")
       .addColumn("id", "text", c => c.primaryKey())
       .addColumn("game_id", "text", c => c.notNull().references("games.id").onDelete("cascade"))
+      .addColumn("round_ordinal", "integer", c => c.notNull())
       .addColumn("drawer_nickname", "text", c => c.notNull())
       .addColumn("word", "text", c => c.notNull())
       .addColumn("drawing", "text")
@@ -38,9 +39,9 @@ const initial: Migration = {
       .execute();
 
     await db.schema
-      .createTable("round_results")
+      .createTable("turn_results")
       .addColumn("id", "integer", c => c.primaryKey().autoIncrement())
-      .addColumn("round_id", "text", c => c.notNull().references("rounds.id").onDelete("cascade"))
+      .addColumn("turn_id", "text", c => c.notNull().references("turns.id").onDelete("cascade"))
       .addColumn("nickname", "text", c => c.notNull())
       .addColumn("guessed_at", "integer")
       .addColumn("points", "integer", c => c.notNull())
@@ -72,7 +73,7 @@ const initial: Migration = {
   },
 
   async down(db: Kysely<unknown>): Promise<void> {
-    for (const table of ["words", "players", "round_results", "rounds", "games", "rooms"]) {
+    for (const table of ["words", "players", "turn_results", "turns", "games", "rooms"]) {
       await db.schema.dropTable(table).ifExists().execute();
     }
   },

@@ -67,18 +67,20 @@ ends with `npm run lint` + `npm test` + `npm run typecheck` clean.
   `round_ordinal`/`turn_count` columns land in R2 where the DB is renamed `rounds`→`turns`,
   avoiding a throwaway migration.
 
-### PR-R2 — mechanical `round`→`turn` rename (~38 files; agreed cap exception)
-- [ ] **R2a** Rename in `shared` + `server` (protocol types/messages, engine, db)
-  - Acceptance: `TurnPhase`/`TurnPublic`/`TurnResult`, `RoomView.turn`, `turnStart`/`turnEnd`,
-    `turnOrdinal`, `rotationOrdinal`→`roundOrdinal`; `round.ts`→`turn.ts` (`Round`→`Turn`); DB
-    `turns`/`turn_results`/`turn_id`. No behavior change.
-  - Verify: `npm run typecheck` (server) + `vitest run` green; `db:reset`.
-  - Files: `shared/src/protocol.ts`, `server/src/game/**`, `server/src/db/**`, `server/test/**`.
-- [ ] **R2b** Rename in `client` + docs; re-freeze protocol
-  - Acceptance: store/components/helpers/tests use `turn`/`turnOrdinal`/`roundOrdinal`;
-    `CLAUDE.md` updated; `grep -ri round` shows only `round`=rotation.
-  - Verify: full `npm run lint` + `npm test` + `npm run build` clean.
-  - Files: `client/src/**`, `client/test/**`, `CLAUDE.md`.
+### PR-R2 — mechanical `round`→`turn` rename (agreed cap exception)
+Landed as one atomic change (shared type/message renames break the client until updated, so
+each commit must stay green — no intermediate split possible). Also folds R1c (persist
+`round_ordinal`; `turn_count` skipped as derivable from turn rows).
+- [x] **R2a** Rename in `shared` + `server` (protocol types/messages, engine, db)
+  - Done: `TurnPhase`/`TurnPublic`/`TurnResult`, `RoomView.turn`, `turnStart`/`turnEnd`,
+    `turnOrdinal` + `roundOrdinal`; `round.ts`→`turn.ts` (`Round`→`Turn`); `turnEnded` event
+    carries both ordinals; DB `turns`/`turn_results`/`turn_id` + `round_ordinal` column; zod
+    unchanged (no inbound round/turn fields). Verified: server typecheck + tests, `db:reset`.
+- [x] **R2b** Rename in `client` + docs; re-freeze protocol
+  - Done: store (`TurnOutcome`/`lastTurn`), components + helpers (`turnKey`, `turn`), all
+    client tests; `CLAUDE.md` + `protocol.ts` header updated with the turn/round vocabulary
+    and re-freeze note; `grep` sweep shows only `round`=rotation (plus `Math.round`/CSS).
+  - Verified: lint + typecheck + 96 tests + build all clean. (Manual browser smoke pending.)
 
 ## Phase 3 — Integration, e2e, deployment
 - [ ] **3a** Playwright e2e (two contexts; assert no word leak)

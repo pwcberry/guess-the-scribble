@@ -22,34 +22,36 @@ export async function insertGame(db: Db, game: NewGame): Promise<void> {
     .execute();
 }
 
-export interface SavedRound {
+export interface SavedTurn {
   gameId: string;
-  roundId: string;
-  ordinal: number;
+  turnId: string;
+  turnOrdinal: number;
+  roundOrdinal: number;
   drawerNickname: string;
   word: string;
   drawing: Stroke[];
   results: PersistedResult[];
 }
 
-export async function saveRound(db: Db, round: SavedRound): Promise<void> {
+export async function saveTurn(db: Db, turn: SavedTurn): Promise<void> {
   await db
-    .insertInto("rounds")
+    .insertInto("turns")
     .values({
-      id: round.roundId,
-      game_id: round.gameId,
-      drawer_nickname: round.drawerNickname,
-      word: round.word,
-      drawing: JSON.stringify(round.drawing),
-      ordinal: round.ordinal,
+      id: turn.turnId,
+      game_id: turn.gameId,
+      round_ordinal: turn.roundOrdinal,
+      drawer_nickname: turn.drawerNickname,
+      word: turn.word,
+      drawing: JSON.stringify(turn.drawing),
+      ordinal: turn.turnOrdinal,
     })
     .execute();
 
-  if (round.results.length > 0) {
+  if (turn.results.length > 0) {
     await db
-      .insertInto("round_results")
-      .values(round.results.map(r => ({
-        round_id: round.roundId,
+      .insertInto("turn_results")
+      .values(turn.results.map(r => ({
+        turn_id: turn.turnId,
         nickname: r.nickname,
         guessed_at: r.guessedAt,
         points: r.points,

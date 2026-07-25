@@ -1,4 +1,4 @@
-import type { RoundPublic } from "@gts/shared";
+import type { TurnPublic } from "@gts/shared";
 import { describe, expect, it } from "vitest";
 import { initialState, type GameState } from "../src/state/store.ts";
 import {
@@ -9,13 +9,13 @@ import {
   isDrawingPhase,
   isLocalDrawer,
   normalizePoint,
-  roundKey,
+  turnKey,
 } from "../src/components/canvas-helpers.ts";
 
-function round(over: Partial<RoundPublic> = {}): RoundPublic {
+function turn(over: Partial<TurnPublic> = {}): TurnPublic {
   return {
-    ordinal: 1,
-    rotationOrdinal: 1,
+    turnOrdinal: 1,
+    roundOrdinal: 1,
     totalRounds: 3,
     drawerSessionId: "drawer",
     drawerNickname: "Ada",
@@ -27,7 +27,7 @@ function round(over: Partial<RoundPublic> = {}): RoundPublic {
   };
 }
 
-function stateWith(sessionId: string | null, r: RoundPublic | null): GameState {
+function stateWith(sessionId: string | null, r: TurnPublic | null): GameState {
   const room = r === null
     ? null
     : {
@@ -35,7 +35,7 @@ function stateWith(sessionId: string | null, r: RoundPublic | null): GameState {
         status: "playing" as const,
         settings: { rounds: 3, drawTimeSec: 80, maxPlayers: 8 },
         players: [],
-        round: r,
+        turn: r,
       };
   return { ...initialState, room, sessionId };
 }
@@ -66,31 +66,31 @@ describe("normalizePoint", () => {
   });
 });
 
-describe("round/drawer derivations", () => {
+describe("turn/drawer derivations", () => {
   it("reports the drawer and whether it is the local client", () => {
-    const asDrawer = stateWith("drawer", round());
+    const asDrawer = stateWith("drawer", turn());
     expect(currentDrawerId(asDrawer)).toBe("drawer");
     expect(isLocalDrawer(asDrawer)).toBe(true);
-    expect(isLocalDrawer(stateWith("guesser", round()))).toBe(false);
+    expect(isLocalDrawer(stateWith("guesser", turn()))).toBe(false);
     expect(drawerNickname(asDrawer)).toBe("Ada");
   });
 
-  it("has no drawer when there is no round", () => {
+  it("has no drawer when there is no turn", () => {
     const idle = stateWith("me", null);
     expect(currentDrawerId(idle)).toBeNull();
     expect(isLocalDrawer(idle)).toBe(false);
     expect(drawerNickname(idle)).toBeNull();
-    expect(roundKey(idle)).toBeNull();
+    expect(turnKey(idle)).toBeNull();
   });
 
   it("only allows drawing for the drawer during the drawing phase", () => {
-    expect(canDraw(stateWith("drawer", round({ phase: "drawing" })))).toBe(true);
-    expect(canDraw(stateWith("drawer", round({ phase: "choosing" })))).toBe(false);
-    expect(isDrawingPhase(stateWith("drawer", round({ phase: "intermission" })))).toBe(false);
-    expect(canDraw(stateWith("guesser", round({ phase: "drawing" })))).toBe(false);
+    expect(canDraw(stateWith("drawer", turn({ phase: "drawing" })))).toBe(true);
+    expect(canDraw(stateWith("drawer", turn({ phase: "choosing" })))).toBe(false);
+    expect(isDrawingPhase(stateWith("drawer", turn({ phase: "intermission" })))).toBe(false);
+    expect(canDraw(stateWith("guesser", turn({ phase: "drawing" })))).toBe(false);
   });
 
-  it("keys the canvas by round ordinal", () => {
-    expect(roundKey(stateWith("me", round({ ordinal: 4 })))).toBe(4);
+  it("keys the canvas by turn ordinal", () => {
+    expect(turnKey(stateWith("me", turn({ turnOrdinal: 4 })))).toBe(4);
   });
 });

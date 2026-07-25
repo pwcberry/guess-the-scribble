@@ -33,7 +33,7 @@ describe("Guessing and scoring", () => {
     expect(bob.conn.ofType("guessResult")[0]!.correct).toBe(true);
     expect(ada.conn.ofType("correctGuess")).toHaveLength(1);
 
-    const end = bob.conn.last("roundEnd")!;
+    const end = bob.conn.last("turnEnd")!;
     expect(scoreOf(end.scores, bob.sessionId)).toBe(100); // guessed at full time
     expect(scoreOf(end.scores, ada.sessionId)).toBe(50); // all (1/1) guessers got it
   });
@@ -78,7 +78,7 @@ describe("Guessing and scoring", () => {
     room.handleMessage(bob.sessionId, { type: "guess", text: word }); // cy stays silent
     clock.advance(60_000); // timer ends the round
 
-    const end = ada.conn.last("roundEnd")!;
+    const end = ada.conn.last("turnEnd")!;
     expect(scoreOf(end.scores, bob.sessionId)).toBe(100);
     expect(scoreOf(end.scores, ada.sessionId)).toBe(25); // drawerPoints(1 of 2)
     expect(scoreOf(end.scores, cy.sessionId)).toBe(0);

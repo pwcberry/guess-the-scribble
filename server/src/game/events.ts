@@ -8,11 +8,14 @@ export interface PersistedResult {
   points: number;
 }
 
-/** Snapshot of a finished round, enough to persist it durably. */
-export interface RoundEndedData {
+/** Snapshot of a finished turn, enough to persist it durably. */
+export interface TurnEndedData {
   gameId: string;
-  roundId: string;
-  ordinal: number;
+  turnId: string;
+  /** Global turn index (1-based). */
+  turnOrdinal: number;
+  /** Round (full rotation) this turn belonged to (1-based). */
+  roundOrdinal: number;
   drawerNickname: string;
   word: string;
   drawing: Stroke[];
@@ -32,7 +35,7 @@ export interface PlayerSnapshot {
  */
 export type GameEvent
   = | { type: "gameStarted"; gameId: string; roomId: string; startedAt: number; roundCount: number }
-    | { type: "roundEnded"; data: RoundEndedData }
+    | { type: "turnEnded"; data: TurnEndedData }
     | { type: "gameEnded"; gameId: string; endedAt: number; scores: Score[]; players: PlayerSnapshot[] };
 
 export type GameEventSink = (event: GameEvent) => void;

@@ -13,7 +13,7 @@ export function makeInviteCode(): string {
   return inviteCode();
 }
 
-/** A 16-character opaque id for rooms, games, rounds. */
+/** A 16-character opaque id for rooms, games, turns. */
 export function makeId(): string {
   return id();
 }
