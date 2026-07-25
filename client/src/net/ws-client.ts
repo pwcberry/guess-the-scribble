@@ -181,7 +181,9 @@ export class GameClient {
   }
 
   private sendJoin(): void {
-    if (!this.join) return;
+    if (!this.join) {
+      return;
+    }
     const sessionId = this.storage.get() ?? undefined;
     this.send({
       type: "join",
@@ -192,7 +194,9 @@ export class GameClient {
   }
 
   private receive(data: unknown): void {
-    if (typeof data !== "string") return;
+    if (typeof data !== "string") {
+      return;
+    }
     let message: ServerMessage;
     try {
       message = JSON.parse(data) as ServerMessage;
@@ -228,7 +232,9 @@ export class GameClient {
   }
 
   private setStatus(status: ConnectionStatus): void {
-    if (this.status === status) return;
+    if (this.status === status) {
+      return;
+    }
     this.status = status;
     for (const listener of this.statusListeners) {
       listener(status);

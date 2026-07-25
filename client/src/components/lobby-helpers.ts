@@ -23,7 +23,9 @@ export function connectedCount(players: PlayerView[]): number {
 
 /** The local player's view within the current room, if identifiable. */
 export function selfPlayer(state: GameState): PlayerView | null {
-  if (!state.room || !state.sessionId) return null;
+  if (!state.room || !state.sessionId) {
+    return null;
+  }
   return state.room.players.find(p => p.sessionId === state.sessionId) ?? null;
 }
 
@@ -35,6 +37,8 @@ export function isHost(state: GameState): boolean {
 /** Whether the game can be started from the current lobby state. */
 export function canStartGame(state: GameState): boolean {
   const room = state.room;
-  if (!room || room.status !== "lobby") return false;
+  if (!room || room.status !== "lobby") {
+    return false;
+  }
   return connectedCount(room.players) >= MIN_PLAYERS;
 }

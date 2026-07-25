@@ -91,7 +91,9 @@ export class GtsJoin extends LitElement {
   }
 
   private _onKeydown(event: KeyboardEvent) {
-    if (event.key === "Enter") this._submit();
+    if (event.key === "Enter") {
+      this._submit();
+    }
   }
 
   private _onSetting(key: keyof RoomSettings, event: Event) {
@@ -100,7 +102,9 @@ export class GtsJoin extends LitElement {
   }
 
   private async _submit() {
-    if (this.busy) return;
+    if (this.busy) {
+      return;
+    }
     const nickname = this.nickname.trim();
     if (!nickname) {
       this.localError = "Please enter a nickname.";

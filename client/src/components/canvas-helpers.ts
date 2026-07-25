@@ -44,8 +44,12 @@ export const DEFAULT_SIZE = BRUSH_SIZES[1];
 export const REFERENCE_WIDTH = 800;
 
 export function clamp01(n: number): number {
-  if (n < 0) return 0;
-  if (n > 1) return 1;
+  if (n < 0) {
+    return 0;
+  }
+  if (n > 1) {
+    return 1;
+  }
   return n;
 }
 

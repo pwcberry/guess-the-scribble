@@ -30,13 +30,17 @@ export class GtsChat extends LitElement {
 
   protected updated() {
     const count = this.state.chat.length;
-    if (count === this.lastCount || !this.log) return;
+    if (count === this.lastCount || !this.log) {
+      return;
+    }
     // Follow new messages, but don't yank the reader down if they've scrolled
     // up to re-read history. Always jump to the latest on the first fill.
     const distanceFromBottom = this.log.scrollHeight - this.log.scrollTop - this.log.clientHeight;
     const firstFill = this.lastCount === 0;
     this.lastCount = count;
-    if (firstFill || distanceFromBottom < 40) this.log.scrollTop = this.log.scrollHeight;
+    if (firstFill || distanceFromBottom < 40) {
+      this.log.scrollTop = this.log.scrollHeight;
+    }
   }
 
   render() {
@@ -84,7 +88,9 @@ export class GtsChat extends LitElement {
   }
 
   private renderNote(note: string | null) {
-    if (!note) return null;
+    if (!note) {
+      return null;
+    }
     return html`<p class="note" role="status">${note}</p>`;
   }
 
@@ -95,7 +101,9 @@ export class GtsChat extends LitElement {
   private onSubmit(event: Event) {
     event.preventDefault();
     const text = this.draft.trim();
-    if (!text) return;
+    if (!text) {
+      return;
+    }
     this.dispatchEvent(
       new CustomEvent<GuessRequest>("gts-guess", {
         detail: { text },

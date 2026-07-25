@@ -22,6 +22,8 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
+      // Always require braces around control-flow bodies, even single statements.
+      "curly": ["error", "all"],
       // Use the TypeScript-aware rule so params in type positions (interface /
       // function-type signatures) are not reported. Preserves the repo's
       // convention of ignoring UPPER/underscore-prefixed identifiers.

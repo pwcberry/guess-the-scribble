@@ -17,7 +17,9 @@ export class GtsLobby extends LitElement {
 
   render() {
     const room = this.state.room;
-    if (!room) return null;
+    if (!room) {
+      return null;
+    }
 
     const host = isHost(this.state);
     const canStart = canStartGame(this.state);
