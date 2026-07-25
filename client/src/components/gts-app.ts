@@ -6,6 +6,10 @@ import "./gts-join.ts";
 import "./gts-lobby.ts";
 import "./gts-canvas.ts";
 import "./gts-chat.ts";
+import "./gts-hud.ts";
+import "./gts-scoreboard.ts";
+import "./gts-game-over.ts";
+import type { ChooseWordRequest } from "./gts-canvas.ts";
 import type { GuessRequest } from "./gts-chat.ts";
 import type { JoinRequest } from "./gts-join.ts";
 
@@ -32,6 +36,8 @@ export class GtsApp extends LitElement {
     this.addEventListener("gts-join", this._onJoin as EventListener);
     this.addEventListener("gts-start-game", this._onStartGame);
     this.addEventListener("gts-guess", this._onGuess as EventListener);
+    this.addEventListener("gts-choose-word", this._onChooseWord as EventListener);
+    this.addEventListener("gts-new-game", this._onNewGame);
   }
 
   disconnectedCallback() {
@@ -40,6 +46,8 @@ export class GtsApp extends LitElement {
     this.removeEventListener("gts-join", this._onJoin as EventListener);
     this.removeEventListener("gts-start-game", this._onStartGame);
     this.removeEventListener("gts-guess", this._onGuess as EventListener);
+    this.removeEventListener("gts-choose-word", this._onChooseWord as EventListener);
+    this.removeEventListener("gts-new-game", this._onNewGame);
   }
 
   private readonly _onJoin = (event: CustomEvent<JoinRequest>) => {
@@ -52,6 +60,16 @@ export class GtsApp extends LitElement {
 
   private readonly _onGuess = (event: CustomEvent<GuessRequest>) => {
     this.store.client.guess(event.detail.text);
+  };
+
+  private readonly _onChooseWord = (event: CustomEvent<ChooseWordRequest>) => {
+    this.store.chooseWord(event.detail.word);
+  };
+
+  /** Return to a fresh join screen. There is no in-protocol game restart. */
+  private readonly _onNewGame = () => {
+    this.store.client.leave();
+    location.assign(location.pathname);
   };
 
   /** Reflect the joined room into the URL so the link can be shared/reloaded. */
@@ -90,10 +108,18 @@ export class GtsApp extends LitElement {
         case "playing":
           return html`
             <div class="game">
-              <gts-canvas .state=${state} .client=${this.store.client}></gts-canvas>
-              <gts-chat .state=${state}></gts-chat>
+              <div class="stage">
+                <gts-hud .state=${state}></gts-hud>
+                <gts-canvas .state=${state} .client=${this.store.client}></gts-canvas>
+              </div>
+              <div class="side">
+                <gts-scoreboard
+                  .players=${room.players}
+                  .selfSessionId=${state.sessionId}
+                ></gts-scoreboard>
+                <gts-chat .state=${state}></gts-chat>
+              </div>
             </div>
-            <p class="note">The round HUD and scoreboard arrive in task 2e.</p>
           `;
         case "ended":
           return this._renderEnded();
@@ -113,15 +139,11 @@ export class GtsApp extends LitElement {
   }
 
   private _renderEnded() {
-    const scores = this.gameState.finalScores ?? [];
     return html`
-      <section class="ended">
-        <h1>Game over</h1>
-        <ol>
-          ${scores.map(s => html`<li><span>${s.nickname}</span><span>${s.score}</span></li>`)}
-        </ol>
-        <p class="note">Full end-of-game screen lands in task 2e.</p>
-      </section>
+      <gts-game-over
+        .scores=${this.gameState.finalScores ?? []}
+        .selfSessionId=${this.gameState.sessionId}
+      ></gts-game-over>
     `;
   }
 
@@ -156,47 +178,33 @@ export class GtsApp extends LitElement {
       max-width: 1100px;
       margin: 0 auto;
     }
-    .game gts-canvas {
+    .stage {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       flex: 1 1 auto;
       min-width: 0;
     }
-    .game gts-chat {
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
       flex: 0 0 auto;
     }
     @media (min-width: 860px) {
       .game {
         flex-direction: row;
-        align-items: stretch;
+        align-items: flex-start;
       }
-      .game gts-chat {
+      .side {
         flex: 0 0 320px;
-        align-self: stretch;
       }
     }
-    .placeholder,
-    .ended {
+    .placeholder {
       max-width: 420px;
       margin: 0 auto;
       text-align: center;
       font: 16px/1.5 system-ui, sans-serif;
-    }
-    .ended ol {
-      list-style: none;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .ended li {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: color-mix(in srgb, currentColor 8%, transparent);
-    }
-    .note {
-      opacity: 0.6;
-      font-size: 14px;
     }
   `;
 }

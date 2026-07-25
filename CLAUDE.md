@@ -89,5 +89,5 @@ Still the Vite/Lit demo. When building the real client, it must connect to the s
 
 ## Conventions
 
-- **Formatting (enforced by `@stylistic` ESLint + `.editorconfig`):** 2-space indent, **double quotes**, semicolons, LF line endings, trailing newline, no trailing whitespace. `npm run lint` is currently clean — keep it that way.
+- **Formatting (enforced by `@stylistic` ESLint + `.editorconfig`):** 2-space indent, **double quotes**, semicolons, LF line endings, trailing newline, no trailing whitespace. Control-flow bodies always use braces (`curly: "all"`), on their own lines (`max-statements-per-line` is 1). `npm run lint` is currently clean — keep it that way.
 - **`no-unused-vars`** ignores identifiers matching `^[A-Z_]` (uppercase/underscore-prefixed).

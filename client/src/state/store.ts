@@ -30,6 +30,10 @@ export interface GameState {
   room: RoomView | null;
   /** Candidate words — only ever populated for the drawer. */
   wordChoices: string[];
+  /** The word the local drawer is currently drawing; null when not drawing or
+   *  not the drawer. The protocol never echoes the word back, so we remember the
+   *  one this client chose. */
+  myWord: string | null;
   chat: ChatEntry[];
   lastRound: RoundOutcome | null;
   finalScores: Score[] | null;
@@ -43,6 +47,7 @@ export const initialState: GameState = {
   sessionId: null,
   room: null,
   wordChoices: [],
+  myWord: null,
   chat: [],
   lastRound: null,
   finalScores: null,
@@ -78,20 +83,27 @@ export function reduce(state: GameState, message: ServerMessage): GameState {
       return { ...state, room: message.room };
 
     case "playerJoined": {
-      if (!state.room) return state;
+      if (!state.room) {
+        return state;
+      }
       const others = state.room.players.filter(p => p.sessionId !== message.player.sessionId);
       return { ...state, room: { ...state.room, players: [...others, message.player] } };
     }
 
     case "playerLeft": {
-      if (!state.room) return state;
+      if (!state.room) {
+        return state;
+      }
       const players = state.room.players.filter(p => p.sessionId !== message.sessionId);
       return { ...state, room: { ...state.room, players } };
     }
 
     case "roundStart": {
       const room = state.room ? { ...state.room, status: "playing" as const, round: message.round } : state.room;
-      return { ...state, room, wordChoices: [], lastRound: null };
+      // A new round opens in the "choosing" phase; the later drawing-phase
+      // roundStart (fired once the drawer picks) must preserve the chosen word.
+      const myWord = message.round.phase === "choosing" ? null : state.myWord;
+      return { ...state, room, wordChoices: [], lastRound: null, myWord };
     }
 
     case "wordChoices":
@@ -106,7 +118,9 @@ export function reduce(state: GameState, message: ServerMessage): GameState {
         text: "guessed the word!",
         kind: "correct",
       });
-      if (!withChat.room) return withChat;
+      if (!withChat.room) {
+        return withChat;
+      }
       const room = mapPlayers(withChat.room, p =>
         p.sessionId === message.sessionId ? { ...p, hasGuessed: true } : p);
       return { ...withChat, room };
@@ -122,12 +136,12 @@ export function reduce(state: GameState, message: ServerMessage): GameState {
         text: `The word was "${message.word}".`,
         kind: "system",
       });
-      return { ...withChat, lastRound: { word: message.word, results: message.results } };
+      return { ...withChat, lastRound: { word: message.word, results: message.results }, myWord: null };
     }
 
     case "gameEnd": {
       const room = state.room ? { ...state.room, status: "ended" as const } : state.room;
-      return { ...state, room, finalScores: message.scores };
+      return { ...state, room, finalScores: message.scores, myWord: null };
     }
 
     case "error":
@@ -160,13 +174,25 @@ export class GameStore {
     return this.state;
   }
 
+  /**
+   * The local drawer commits to a word. Remembered locally (the protocol never
+   * echoes the word back to the drawer) before telling the server, so the HUD
+   * can show it for the rest of the round.
+   */
+  chooseWord(word: string): void {
+    this.set({ ...this.state, myWord: word });
+    this.client.chooseWord(word);
+  }
+
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
   private set(next: GameState): void {
-    if (next === this.state) return;
+    if (next === this.state) {
+      return;
+    }
     this.state = next;
     for (const listener of this.listeners) {
       listener(next);

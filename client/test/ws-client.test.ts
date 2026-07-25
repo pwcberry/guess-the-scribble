@@ -22,7 +22,9 @@ class FakeSocket implements Socket {
   }
 
   emit(type: string, event: { data: unknown } = { data: undefined }): void {
-    for (const listener of this.handlers[type] ?? []) listener(event);
+    for (const listener of this.handlers[type] ?? []) {
+      listener(event);
+    }
   }
 
   receive(message: ServerMessage): void {

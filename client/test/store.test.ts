@@ -95,6 +95,35 @@ describe("store reducer", () => {
     expect(started.wordChoices).toEqual([]);
   });
 
+  it("keeps the drawer's word across the drawing roundStart but clears it on a new round", () => {
+    const drawing = (ordinal: number, phase: "choosing" | "drawing"): ServerMessage => ({
+      type: "roundStart",
+      round: {
+        ordinal,
+        totalRounds: 3,
+        drawerSessionId: "a",
+        drawerNickname: "a",
+        wordPattern: "_ _ _",
+        wordLength: 3,
+        phase,
+        endsAt: phase === "drawing" ? 1000 : null,
+      },
+    });
+    const joined = reduce(initialState, { type: "joined", sessionId: "a", room: room() });
+    // The drawer has chosen "cat" (store sets myWord); the drawing-phase roundStart must keep it.
+    const drawingNow = reduce({ ...joined, myWord: "cat" }, drawing(1, "drawing"));
+    expect(drawingNow.myWord).toBe("cat");
+    // Round ends, then the next round opens in "choosing" — the word is cleared both times.
+    const ended = reduce(drawingNow, {
+      type: "roundEnd",
+      word: "cat",
+      results: [],
+      scores: [],
+    });
+    expect(ended.myWord).toBeNull();
+    expect(reduce({ ...drawingNow }, drawing(2, "choosing")).myWord).toBeNull();
+  });
+
   it("appends chat with monotonic ids", () => {
     const next = run(
       initialState,

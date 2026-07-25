@@ -17,6 +17,11 @@ import {
   type Point,
 } from "./canvas-helpers.ts";
 
+/** Emitted when the drawer selects the word they will draw. */
+export interface ChooseWordRequest {
+  word: string;
+}
+
 /**
  * The shared drawing surface. The drawer paints with the pointer and each
  * completed line is sent as one `draw` message (one gesture = one `Stroke`, so
@@ -59,13 +64,17 @@ export class GtsCanvas extends LitElement {
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.observer?.disconnect();
-    if (this.frame !== null) cancelAnimationFrame(this.frame);
+    if (this.frame !== null) {
+      cancelAnimationFrame(this.frame);
+    }
     this.frame = null;
   }
 
   firstUpdated() {
     const canvas = this.renderRoot.querySelector("canvas");
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.observer = new ResizeObserver(() => this.resize());
@@ -74,7 +83,9 @@ export class GtsCanvas extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues<this>) {
-    if (!changed.has("state")) return;
+    if (!changed.has("state")) {
+      return;
+    }
     const key = roundKey(this.state);
     if (key !== this.lastRoundKey) {
       this.lastRoundKey = key;
@@ -88,11 +99,15 @@ export class GtsCanvas extends LitElement {
   }
 
   protected updated(changed: PropertyValues<this>) {
-    if (changed.has("client")) this.subscribe();
+    if (changed.has("client")) {
+      this.subscribe();
+    }
   }
 
   private subscribe() {
-    if (this.unsubscribe || !this.client) return;
+    if (this.unsubscribe || !this.client) {
+      return;
+    }
     this.unsubscribe = this.client.onMessage(message => this.onServerMessage(message));
   }
 
@@ -109,7 +124,9 @@ export class GtsCanvas extends LitElement {
   // --- pointer input (drawer only) ---------------------------------------
 
   private readonly onPointerDown = (event: PointerEvent) => {
-    if (!canDraw(this.state)) return;
+    if (!canDraw(this.state)) {
+      return;
+    }
     event.preventDefault();
     this.canvas?.setPointerCapture(event.pointerId);
     this.current = { points: [this.pointFrom(event)], color: this.color, width: this.size };
@@ -117,16 +134,22 @@ export class GtsCanvas extends LitElement {
   };
 
   private readonly onPointerMove = (event: PointerEvent) => {
-    if (!this.current) return;
+    if (!this.current) {
+      return;
+    }
     const point = this.pointFrom(event);
     const last = this.current.points[this.current.points.length - 1];
-    if (last[0] === point[0] && last[1] === point[1]) return;
+    if (last[0] === point[0] && last[1] === point[1]) {
+      return;
+    }
     this.current.points.push(point);
     this.requestRender();
   };
 
   private readonly onPointerUp = () => {
-    if (!this.current) return;
+    if (!this.current) {
+      return;
+    }
     const stroke = this.current;
     this.current = null;
     this.strokes.push(stroke);
@@ -140,7 +163,9 @@ export class GtsCanvas extends LitElement {
   }
 
   private undo() {
-    if (this.strokes.length === 0) return;
+    if (this.strokes.length === 0) {
+      return;
+    }
     this.strokes.pop();
     this.client.undo();
     this.requestRender();
@@ -164,7 +189,9 @@ export class GtsCanvas extends LitElement {
   private resize() {
     const canvas = this.canvas;
     const ctx = this.ctx;
-    if (!canvas || !ctx) return;
+    if (!canvas || !ctx) {
+      return;
+    }
     const rect = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     this.cssW = rect.width;
@@ -176,7 +203,9 @@ export class GtsCanvas extends LitElement {
   }
 
   private requestRender() {
-    if (this.frame !== null) return;
+    if (this.frame !== null) {
+      return;
+    }
     this.frame = requestAnimationFrame(() => {
       this.frame = null;
       this.paint();
@@ -185,17 +214,25 @@ export class GtsCanvas extends LitElement {
 
   private paint() {
     const ctx = this.ctx;
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
     const { cssW: w, cssH: h } = this;
     ctx.clearRect(0, 0, w, h);
     const scale = w / REFERENCE_WIDTH;
-    for (const stroke of this.strokes) this.drawStroke(stroke, w, h, scale);
-    if (this.current) this.drawStroke(this.current, w, h, scale);
+    for (const stroke of this.strokes) {
+      this.drawStroke(stroke, w, h, scale);
+    }
+    if (this.current) {
+      this.drawStroke(this.current, w, h, scale);
+    }
   }
 
   private drawStroke(stroke: Stroke, w: number, h: number, scale: number) {
     const pts = stroke.points;
-    if (pts.length === 0) return;
+    if (pts.length === 0) {
+      return;
+    }
     const ctx = this.ctx!;
     const lineWidth = Math.max(0.5, stroke.width * scale);
     ctx.strokeStyle = stroke.color;
@@ -249,13 +286,28 @@ export class GtsCanvas extends LitElement {
     return html`<p class="caption" role="status">${name} ${what}…</p>`;
   }
 
+  /**
+   * The drawer picks a word. Routed through the app shell (rather than calling
+   * the client directly like draw/undo/clear) so the store can remember the
+   * chosen word for the HUD — the protocol never echoes it back to the drawer.
+   */
+  private choose(word: string) {
+    this.dispatchEvent(
+      new CustomEvent<ChooseWordRequest>("gts-choose-word", {
+        detail: { word },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   private renderWordChoice(words: string[]) {
     return html`
       <div class="overlay">
         <h2>Choose a word to draw</h2>
         <div class="choices">
           ${words.map(word => html`
-            <button type="button" @click=${() => this.client.chooseWord(word)}>${word}</button>
+            <button type="button" @click=${() => this.choose(word)}>${word}</button>
           `)}
         </div>
       </div>
