@@ -39,6 +39,44 @@ clean before it's considered done.
   - Done: `hud-helpers.ts` + `scoreboard-helpers.ts` (pure, node-tested: timer remaining/fraction, `rankByScore` with ties); `gts-hud.ts` (round X/Y, drawer, word for the drawer / blanks for guessers, live countdown bar, and the round-end reveal keyed off `lastRound` — the server never broadcasts phase=intermission, so the client's `round.phase` still reads "drawing" then); `gts-scoreboard.ts` (ranked players + icon-and-label status badges); `gts-game-over.ts` (final standings + winner + "Play again"). Store gained `myWord` (the drawer's chosen word — the protocol never echoes it back): set via `GameStore.chooseWord`, kept through the drawing-phase `roundStart`, cleared on a new round / round-end / game-end; `gts-canvas` now routes word choice through a `gts-choose-word` event. Wired HUD+canvas / scoreboard+chat into a responsive `gts-app` playing layout; game-over replaces the ended placeholder. Verified: 94 tests (adds store `myWord`, hud + scoreboard helpers), eslint clean, client typecheck + Vite build green.
   - Also (per request): added `curly: ["error", "all"]` to `eslint.config.js` and reformatted the resulting single-line control bodies repo-wide.
 
+## Phase R — `round`→`turn` rename + real `round` grouping (2026-07-25)
+See `plan.md` → "Change Request (2026-07-25)". **Decision: Option B — two PRs.** Each commit
+ends with `npm run lint` + `npm test` + `npm run typecheck` clean.
+
+### PR-R1 — round-grouping feature, keeping today's `round` names (green throughout)
+- [x] **R1a** Engine: `settings.rounds` = rotations; `rounds × players` turns; game ends after
+      the last rotation; below-2-players early end
+  - Acceptance: N players + `rounds: R` ⇒ exactly `R × N` turns, everyone draws R times,
+    `gameEnd` after the last turn; per-rotation drawer order from present players; early end < 2.
+  - Verify: new engine tests (exact turn count, per-player draw count, early-end); `vitest run`.
+  - Files: `server/src/game/{room,round,settings}.ts` (+ `events.ts` if round_ordinal persisted).
+  - Done: rotation queue + `rotationOrdinal` in `room.ts` (`nextDrawer` replaces `pickDrawer`;
+    below-2 guard in `beginRound`). Updated `round.test.ts` (+3 tests) and `persistence.test.ts`
+    (rounds:1 = 2-turn rotation). Verified: lint clean, typecheck green, 96/96 tests.
+- [ ] **R1b** Add `RoundPublic.rotationOrdinal`; HUD shows `rotationOrdinal` / `totalRounds`
+  - Acceptance: wire adds the one field; `gts-hud` reads it; store/canvas unchanged (`ordinal`
+    stays the turn reset key). zod unchanged (no inbound change).
+  - Verify: `npm run typecheck` + `vitest run` clean; manual 2-player 2-round smoke ("Round 1/2"→"2/2").
+  - Files: `shared/src/protocol.ts`, `server/src/game/room.ts`, `client/src/components/gts-hud.ts`
+    (+ `hud-helpers.ts` / its test).
+- [ ] **R1c** Persist `round_ordinal` + `turn_count` (optional within R1; else fold into R2)
+  - Acceptance: `games.turn_count` recorded; each turn row carries its rotation ordinal.
+  - Verify: persistence test asserts counts for a known N×R game; `npm run db:reset`; `vitest run`.
+  - Files: `server/src/db/{schema,migrations,games,persistence}.ts`.
+
+### PR-R2 — mechanical `round`→`turn` rename (~38 files; agreed cap exception)
+- [ ] **R2a** Rename in `shared` + `server` (protocol types/messages, engine, db)
+  - Acceptance: `TurnPhase`/`TurnPublic`/`TurnResult`, `RoomView.turn`, `turnStart`/`turnEnd`,
+    `turnOrdinal`, `rotationOrdinal`→`roundOrdinal`; `round.ts`→`turn.ts` (`Round`→`Turn`); DB
+    `turns`/`turn_results`/`turn_id`. No behavior change.
+  - Verify: `npm run typecheck` (server) + `vitest run` green; `db:reset`.
+  - Files: `shared/src/protocol.ts`, `server/src/game/**`, `server/src/db/**`, `server/test/**`.
+- [ ] **R2b** Rename in `client` + docs; re-freeze protocol
+  - Acceptance: store/components/helpers/tests use `turn`/`turnOrdinal`/`roundOrdinal`;
+    `CLAUDE.md` updated; `grep -ri round` shows only `round`=rotation.
+  - Verify: full `npm run lint` + `npm test` + `npm run build` clean.
+  - Files: `client/src/**`, `client/test/**`, `CLAUDE.md`.
+
 ## Phase 3 — Integration, e2e, deployment
 - [ ] **3a** Playwright e2e (two contexts; assert no word leak)
 - [ ] **3b** Multi-stage Dockerfile + docker-compose + SQLite volume

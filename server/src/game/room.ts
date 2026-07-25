@@ -71,8 +71,12 @@ export class Room {
   private readonly scheduler: Scheduler;
   private readonly events?: GameEventSink;
 
+  /** Global turn index (1-based) — one drawer's period; `RoundPublic.ordinal`. */
   private roundOrdinal = 0;
-  private drawerCursor = 0;
+  /** Current rotation (1-based). A game runs `settings.rounds` rotations. */
+  private rotationOrdinal = 0;
+  /** SessionIds still to draw in the current rotation (one turn per present player). */
+  private rotationQueue: string[] = [];
   private timerCancel: Cancel | null = null;
 
   constructor(deps: RoomDeps) {
@@ -216,7 +220,8 @@ export class Room {
     this.status = "playing";
     this.gameId = makeId();
     this.roundOrdinal = 0;
-    this.drawerCursor = 0;
+    this.rotationOrdinal = 0;
+    this.rotationQueue = [];
     for (const p of this.players.values()) {
       p.score = 0;
     }
@@ -231,16 +236,17 @@ export class Room {
   }
 
   private beginRound(): void {
-    this.roundOrdinal += 1;
-    if (this.roundOrdinal > this.settings.rounds) {
+    // A game needs 2+ present players; a drop below that ends it early.
+    if (this.connectedCount() < 2) {
       this.endGame();
       return;
     }
-    const drawer = this.pickDrawer();
+    const drawer = this.nextDrawer();
     if (!drawer) {
       this.endGame();
       return;
     }
+    this.roundOrdinal += 1;
 
     for (const p of this.players.values()) {
       p.hasGuessed = false;
@@ -508,14 +514,29 @@ export class Room {
       .sort((a, b) => b.score - a.score);
   }
 
-  private pickDrawer(): Player | undefined {
-    const eligible = this.playerList.filter(p => p.connected);
-    if (eligible.length === 0) {
-      return undefined;
+  /**
+   * The next drawer, or undefined when the game is over. A rotation is one turn
+   * per present player; when the queue empties we start the next rotation
+   * (re-snapshotting present players, so leavers are dropped and joiners picked
+   * up) until `settings.rounds` rotations have been played.
+   */
+  private nextDrawer(): Player | undefined {
+    for (;;) {
+      while (this.rotationQueue.length > 0) {
+        const player = this.players.get(this.rotationQueue.shift()!);
+        if (player?.connected) {
+          return player;
+        }
+      }
+      if (this.rotationOrdinal >= this.settings.rounds) {
+        return undefined;
+      }
+      this.rotationOrdinal += 1;
+      this.rotationQueue = this.playerList.filter(p => p.connected).map(p => p.sessionId);
+      if (this.rotationQueue.length === 0) {
+        return undefined;
+      }
     }
-    const drawer = eligible[this.drawerCursor % eligible.length]!;
-    this.drawerCursor += 1;
-    return drawer;
   }
 
   private handleDrawerAbsence(sessionId: string): void {

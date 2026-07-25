@@ -98,19 +98,60 @@ describe("Round lifecycle", () => {
     expect(room.round?.drawerSessionId).toBe(bob.sessionId);
   });
 
-  it("ends the game after the configured rounds", () => {
+  it("plays rounds as full rotations: 2 rounds x 2 players = 4 turns, each draws twice", () => {
+    const players = [joinRoom(room, "ada"), joinRoom(room, "bob")];
+    const byId = new Map(players.map(p => [p.sessionId, p.conn]));
+    room.startGame(players[0]!.sessionId);
+
+    const drawers: string[] = [];
+    // Play turns until the game ends; record each turn's drawer.
+    while (room.status === "playing") {
+      const drawerId = room.round!.drawerSessionId;
+      drawers.push(drawerId);
+      room.chooseWord(drawerId, byId.get(drawerId)!.last("wordChoices")!.words[0]!);
+      clock.advance(60_000); // drawing time -> turn ends
+      clock.advance(5_000); // intermission -> next turn / game end
+    }
+
+    // settings.rounds (2) full rotations of 2 players = 4 turns; each drew twice.
+    expect(drawers).toHaveLength(4);
+    expect(drawers.filter(d => d === players[0]!.sessionId)).toHaveLength(2);
+    expect(drawers.filter(d => d === players[1]!.sessionId)).toHaveLength(2);
+    expect(room.status).toBe("ended");
+    expect(players[0]!.conn.ofType("gameEnd")).toHaveLength(1);
+  });
+
+  it("runs rounds x players turns for a larger table", () => {
+    const big = new RoomRegistry({
+      words: new WordPool(["cat", "dog", "sun", "moon", "tree"]),
+      scheduler: clock,
+    }).create({ rounds: 3, drawTimeSec: 60, maxPlayers: 8 });
+    const players = ["ada", "bob", "cy", "di"].map(n => joinRoom(big, n));
+    const byId = new Map(players.map(p => [p.sessionId, p.conn]));
+    big.startGame(players[0]!.sessionId);
+
+    let turns = 0;
+    while (big.status === "playing") {
+      const drawerId = big.round!.drawerSessionId;
+      turns += 1;
+      big.chooseWord(drawerId, byId.get(drawerId)!.last("wordChoices")!.words[0]!);
+      clock.advance(60_000);
+      clock.advance(5_000);
+    }
+
+    expect(turns).toBe(3 * 4); // rounds x players
+  });
+
+  it("ends early when players drop below 2 mid-game", () => {
     const ada = joinRoom(room, "ada");
     const bob = joinRoom(room, "bob");
     room.startGame(ada.sessionId);
 
-    // Round 1
+    // Finish ada's turn; bob leaves during the intermission before his turn.
     room.chooseWord(ada.sessionId, ada.conn.last("wordChoices")!.words[0]!);
     clock.advance(60_000);
-    clock.advance(5_000);
-    // Round 2
-    room.chooseWord(bob.sessionId, bob.conn.last("wordChoices")!.words[0]!);
-    clock.advance(60_000);
-    clock.advance(5_000);
+    room.leave(bob.sessionId);
+    clock.advance(5_000); // intermission fires beginRound with only 1 player
 
     expect(room.status).toBe("ended");
     expect(ada.conn.ofType("gameEnd")).toHaveLength(1);

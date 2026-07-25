@@ -37,35 +37,46 @@ describe("persistence", () => {
 
     const ada = joinRoom(room, "ada");
     const bob = joinRoom(room, "bob");
+    const conns = new Map([[ada.sessionId, ada.conn], [bob.sessionId, bob.conn]]);
     room.startGame(ada.sessionId);
-    const word = ada.conn.last("wordChoices")!.words[0]!;
-    room.chooseWord(ada.sessionId, word);
-    room.handleMessage(ada.sessionId, {
-      type: "draw",
-      stroke: { points: [[0, 0], [1, 1]], color: "#000", width: 2 },
-    });
-    room.handleMessage(bob.sessionId, { type: "guess", text: word }); // all guessed -> round ends
-    clock.advance(5_000); // intermission -> game ends (rounds = 1)
+
+    // rounds: 1 is one full rotation -> both players draw once (2 turns). Each turn
+    // the drawer draws one stroke and the other player guesses immediately.
+    const words: string[] = [];
+    while (room.status === "playing") {
+      const drawerId = room.round!.drawerSessionId;
+      const guesserId = drawerId === ada.sessionId ? bob.sessionId : ada.sessionId;
+      const word = conns.get(drawerId)!.last("wordChoices")!.words[0]!;
+      words.push(word);
+      room.chooseWord(drawerId, word);
+      room.handleMessage(drawerId, {
+        type: "draw",
+        stroke: { points: [[0, 0], [1, 1]], color: "#000", width: 2 },
+      });
+      room.handleMessage(guesserId, { type: "guess", text: word }); // all guessed -> turn ends
+      clock.advance(5_000); // intermission -> next turn / game end
+    }
 
     await sink.flush();
     expect(persistError).toBeUndefined();
 
     const game = await db.selectFrom("games").selectAll().executeTakeFirstOrThrow();
-    expect(game.round_count).toBe(1);
+    expect(game.round_count).toBe(1); // 1 rotation configured
     expect(game.ended_at).not.toBeNull();
 
-    const rounds = await db.selectFrom("rounds").selectAll().execute();
-    expect(rounds).toHaveLength(1);
-    expect(rounds[0]!.word).toBe(word);
-    expect(JSON.parse(rounds[0]!.drawing!)).toHaveLength(1); // one recorded stroke
+    const rounds = await db.selectFrom("rounds").selectAll().orderBy("ordinal").execute();
+    expect(rounds).toHaveLength(2); // 1 rotation x 2 players
+    expect(rounds.map(r => r.word)).toEqual(words);
+    expect(JSON.parse(rounds[0]!.drawing!)).toHaveLength(1); // one recorded stroke per turn
 
     const results = await db.selectFrom("round_results").selectAll().execute();
-    expect(results).toHaveLength(2); // drawer + guesser
+    expect(results).toHaveLength(4); // drawer + guesser, per turn
 
+    // Each player drew once (drawer points 50) and guessed once immediately (100) -> 150.
     const players = await db.selectFrom("players").selectAll().execute();
     const bobRow = players.find(p => p.session_id === bob.sessionId)!;
     expect(bobRow.nickname).toBe("bob");
-    expect(bobRow.total_score).toBe(100);
-    expect(players.find(p => p.session_id === ada.sessionId)!.total_score).toBe(50);
+    expect(bobRow.total_score).toBe(150);
+    expect(players.find(p => p.session_id === ada.sessionId)!.total_score).toBe(150);
   });
 });
