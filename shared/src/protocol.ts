@@ -45,7 +45,11 @@ export interface PlayerView {
 
 /** Public round state — note: never includes the secret word, only its pattern. */
 export interface RoundPublic {
+  /** Global turn index (1-based) — one drawer's period. Unique per turn. */
   ordinal: number;
+  /** Current round (full rotation), 1-based; 1..totalRounds. */
+  rotationOrdinal: number;
+  /** Number of rounds (full rotations) in the game. */
   totalRounds: number;
   drawerSessionId: string;
   drawerNickname: string;

@@ -62,6 +62,7 @@ describe("store reducer", () => {
       type: "roundStart",
       round: {
         ordinal: 1,
+        rotationOrdinal: 1,
         totalRounds: 3,
         drawerSessionId: "a",
         drawerNickname: "a",
@@ -83,6 +84,7 @@ describe("store reducer", () => {
       type: "roundStart",
       round: {
         ordinal: 2,
+        rotationOrdinal: 1,
         totalRounds: 3,
         drawerSessionId: "b",
         drawerNickname: "b",
@@ -100,6 +102,7 @@ describe("store reducer", () => {
       type: "roundStart",
       round: {
         ordinal,
+        rotationOrdinal: 1,
         totalRounds: 3,
         drawerSessionId: "a",
         drawerNickname: "a",

@@ -15,6 +15,7 @@ import {
 function round(over: Partial<RoundPublic> = {}): RoundPublic {
   return {
     ordinal: 1,
+    rotationOrdinal: 1,
     totalRounds: 3,
     drawerSessionId: "drawer",
     drawerNickname: "Ada",

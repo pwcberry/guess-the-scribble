@@ -1,14 +1,17 @@
 # Spec: Guess the Scribble
 
-> Status: **DRAFT — awaiting human review** (Phase 1 of spec-driven workflow).
-> Do not advance to Plan until this is approved.
+> Status: **APPROVED** (2026-07-25). Gameplay updated: `round` = a full rotation (every
+> player takes one turn as drawer), `turn` = one drawer's period. Decision: **rename in the
+> protocol** so code and spec share this vocabulary (`round`→`turn` for the per-drawer
+> concept; a new `round` grouping is added). See `plan.md` for the rename + round-feature plan.
 
 ## Objective
 
 A real-time multiplayer web game in the Pictionary / skribbl.io tradition: one player
 draws a secret word on a shared canvas while everyone else races to guess it in chat.
-Fast, correct guesses score points; the drawer scores when players guess. The drawer
-rotates each round; after a set number of rounds the game ends with a final scoreboard.
+Fast, correct guesses score points; the drawer scores when players guess. A **round** is a
+full rotation in which every player takes one turn as drawer (skribbl-style); the host picks
+how many rounds a game runs. The game ends once all rounds are played, with a final scoreboard.
 
 **Who it's for:** Small friend groups who want a quick, no-signup drawing game they can
 start by sharing a link.
@@ -22,20 +25,20 @@ start by sharing a link.
 
 ## Tech Stack
 
-| Layer      | Choice                                                            |
-|------------|-------------------------------------------------------------------|
-| Language   | TypeScript (strict) on both server and client                     |
-| Backend    | Fastify                                                            |
-| Real-time  | Native WebSockets via `@fastify/websocket`                        |
-| Frontend   | Lit web components + vanilla HTML & CSS                            |
-| Client build | Vite (dev server + production bundle)                            |
-| Server build | `tsc` for prod, `tsx` for dev/watch                             |
-| Database   | SQLite (persistent, single file)                                  |
-| DB driver  | `better-sqlite3` (synchronous, fast)                              |
+| Layer            | Choice                                                                    |
+|------------------|---------------------------------------------------------------------------|
+| Language         | TypeScript (strict) on both server and client                             |
+| Backend          | Fastify                                                                   |
+| Real-time        | Native WebSockets via `@fastify/websocket`                                |
+| Frontend         | Lit web components + vanilla HTML & CSS                                   |
+| Client build     | Vite (dev server + production bundle)                                     |
+| Server build     | `tsc` for prod, `tsx` for dev/watch                                       |
+| Database         | SQLite (persistent, single file)                                          |
+| DB driver        | `better-sqlite3` (synchronous, fast)                                      |
 | Query/migrations | `kysely` with its built-in `SqliteDialect` (type-safe queries + migrator) |
-| Testing    | Vitest (unit/integration) + Playwright (e2e)                      |
-| Shared     | A `shared/` package holding wire-protocol types used by both ends  |
-| Packaging  | Docker — multi-stage build, single image serving API + built client |
+| Testing          | Vitest (unit/integration) + Playwright (e2e)                              |
+| Shared           | A `shared/` package holding wire-protocol types used by both ends         |
+| Packaging        | Docker — multi-stage build, single image serving API + built client       |
 
 **Rationale for native WebSockets:** matches the vanilla ethos, no extra client
 dependency, and the message set here is small enough to hand-define with shared TS types.
@@ -121,19 +124,39 @@ guess-the-scribble/
 1. Host `POST /api/rooms` → server creates a room, returns a short invite code + link.
 2. Players open the link, enter a nickname, and connect via WebSocket (anonymous;
    identity is a client-stored `sessionId` scoped to the browser).
-3. Host configures settings (rounds, draw time, max players) and starts the game.
+3. Host configures settings (number of rounds, draw time, max players) and starts the game.
+   The round count is host-chosen (minimum 1); every player draws once per round.
 
-**Round loop** (repeats until `rounds` complete; drawer rotates)
+**Terminology.** A **turn** is a single drawer's period: they draw one word while everyone
+else guesses. A **round** is a full rotation — one turn per player. A game runs a
+host-configured number of rounds, so with `R` rounds and `P` players each player draws `R`
+times over `R × P` turns total.
+
+> Note: the shipped Phase 0–2 code currently uses `round` for what this spec now calls a
+> **turn** (`RoundPublic`, `roundStart`/`roundEnd`, the `rounds` table). We are **renaming in
+> the protocol** so code matches this vocabulary — `turn` for the per-drawer concept, with a
+> new `round` grouping (rotation) added on top. Tracked in `plan.md`.
+
+**Game loop** — run the configured number of **rounds**; each round is one full rotation of
+**turns** (one per player, fixed order). The game ends when the final turn of the final round
+completes, then shows the scoreboard.
+
+**Turn loop** (repeats for each player within a round; drawer rotates)
 1. Server picks the next drawer and offers them 3 candidate words; drawer chooses one.
-2. Server broadcasts round start (word length/blanks to guessers; full word only to drawer).
+2. Server broadcasts turn start (word length/blanks to guessers; full word only to drawer).
 3. Drawer draws; stroke events are relayed to all players in the room in real time.
 4. Guessers submit guesses in chat. The **server** compares each guess to the secret word.
    - Correct → player is marked as having guessed; awarded points on a time-decay curve;
      their guess is hidden from others (shown as "guessed the word!").
    - Incorrect → shown to the room as normal chat.
-5. Round ends when time expires or all guessers have guessed. Reveal the word; show
-   round scores; drawer earns points scaled by how many guessed.
-6. Persist the round (drawer, word, final drawing snapshot, per-player results).
+5. Turn ends when time expires or all guessers have guessed. Reveal the word; show
+   turn scores; drawer earns points scaled by how many guessed.
+6. Persist the turn (drawer, word, final drawing snapshot, per-player results).
+
+**Players leaving mid-game.** The round count is fixed at game start and does not change if
+players leave; the game plays out all configured rounds, and each round's rotation skips
+players who have left. If the room drops below 2 present players, the game cannot continue
+and ends early at the current scoreboard.
 
 **Scoring** (initial model, tunable)
 - Guessers: base points scaled by remaining time when they guessed (earlier = more).
@@ -157,20 +180,23 @@ custom/room-provided lists in v1.
 Single WebSocket per player per room. Messages are JSON with a `type` discriminator,
 defined once in `shared/src/protocol.ts` and imported by both ends.
 
-Representative message types (non-exhaustive; finalized in Plan):
+Representative message types (non-exhaustive; finalized in Plan). Per-drawer messages use
+**`turn`** vocabulary; **`round`** = a full rotation, **`gameEnd`** fires after the last turn
+of the last round:
 - Client→Server: `join`, `chooseWord`, `draw` (stroke segment), `clearCanvas`, `undo`,
   `guess`, `startGame`, `leave`.
-- Server→Client: `roomState`, `playerJoined`/`playerLeft`, `roundStart`, `wordChoices`
-  (drawer only), `drawBroadcast`, `guessResult`, `chat`, `roundEnd`, `gameEnd`, `error`.
+- Server→Client: `roomState`, `playerJoined`/`playerLeft`, `turnStart` (carries `TurnPublic`
+  with the current round ordinal + total rounds), `wordChoices` (drawer only), `drawBroadcast`,
+  `guessResult`, `chat`, `turnEnd`, `gameEnd`, `error`.
 
 ## Data Model (SQLite)
 
 Anonymous but persistent — one SQLite file. JSON columns are stored as `TEXT` and
 (de)serialized in the query layer. Sketch (finalized in Plan):
 - `rooms` — id, invite_code, settings (TEXT/JSON), status, created_at.
-- `games` — id, room_id, started_at, ended_at, round_count.
-- `rounds` — id, game_id, drawer_nickname, word, drawing (TEXT/JSON — replayable stroke list), ordinal.
-- `round_results` — round_id, nickname, guessed_at, points.
+- `games` — id, room_id, started_at, ended_at, round_count (rotations), turn_count (drawers cycled).
+- `turns` — id, game_id, round_ordinal, drawer_nickname, word, drawing (TEXT/JSON — replayable stroke list), ordinal (global turn index).
+- `turn_results` — turn_id, nickname, guessed_at, points.
 - `players` — session-scoped identity within a game: game_id, session_id, nickname, total_score.
 - `words` — word, category/difficulty (seeded word list).
 
@@ -255,8 +281,8 @@ compile it against the runtime image's Node/platform (build in the same base ima
 2. A drawer's strokes render on a second player's canvas within one animation frame of receipt.
 3. A correct guess is detected server-side, scored on the time curve, and hidden from other players' chat.
 4. An incorrect guess appears as normal chat to the room.
-5. After the configured number of rounds, a final scoreboard is shown and the completed game (rounds, words, results) exists in the database.
-6. A non-drawer client never receives the secret word before the round ends (verifiable in captured WS traffic).
+5. A game runs the host-configured number of rounds (≥ 1), each round a full rotation of one turn per player; once the final round's last turn completes the game ends, a final scoreboard is shown, and the completed game (turns, words, results) exists in the database.
+6. A non-drawer client never receives the secret word before the turn ends (verifiable in captured WS traffic).
 7. `npm run build`, `npm run typecheck`, and `npm test` all pass clean.
 
 ## Open Questions
@@ -268,5 +294,8 @@ _All resolved for v1:_
 - **Word list:** built-in English-only list.
 - **Hosting:** Docker (multi-stage image, SQLite on a mounted volume).
 
-No open questions remain — spec is ready for approval.
+- **`round`/`turn` naming (RESOLVED 2026-07-25):** rename in the protocol — `turn` for the
+  per-drawer concept (was `round`), plus a new `round` = full-rotation grouping and a
+  game-end-after-N-rounds condition. This is a deliberate change to the previously FROZEN
+  protocol; the rename + round feature are planned in `plan.md`.
 ```
