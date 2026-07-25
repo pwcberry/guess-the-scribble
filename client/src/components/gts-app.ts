@@ -4,6 +4,7 @@ import { GameStore, type GameState } from "../state/store.ts";
 import { parseRoomCode } from "./lobby-helpers.ts";
 import "./gts-join.ts";
 import "./gts-lobby.ts";
+import "./gts-canvas.ts";
 import type { JoinRequest } from "./gts-join.ts";
 
 /**
@@ -79,7 +80,10 @@ export class GtsApp extends LitElement {
         case "lobby":
           return html`<gts-lobby .state=${state}></gts-lobby>`;
         case "playing":
-          return this._placeholder("Game in progress", "The drawing canvas, chat and HUD arrive in tasks 2c–2e.");
+          return html`
+            <gts-canvas .state=${state} .client=${this.store.client}></gts-canvas>
+            <p class="note">Chat and the round HUD arrive in tasks 2d–2e.</p>
+          `;
         case "ended":
           return this._renderEnded();
       }
