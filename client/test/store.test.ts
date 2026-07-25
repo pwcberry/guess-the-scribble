@@ -21,7 +21,7 @@ function room(over: Partial<RoomView> = {}): RoomView {
     status: "lobby",
     settings: { rounds: 3, drawTimeSec: 60, maxPlayers: 8 },
     players: [player("a", { isHost: true }), player("b")],
-    round: null,
+    turn: null,
     ...over,
   };
 }
@@ -56,13 +56,13 @@ describe("store reducer", () => {
     expect(left.room?.players.map(p => p.sessionId)).toEqual(["a"]);
   });
 
-  it("sets the round and flips the room to playing on roundStart", () => {
+  it("sets the round and flips the room to playing on turnStart", () => {
     const joined = reduce(initialState, { type: "joined", sessionId: "a", room: room() });
     const started = reduce(joined, {
-      type: "roundStart",
-      round: {
-        ordinal: 1,
-        rotationOrdinal: 1,
+      type: "turnStart",
+      turn: {
+        turnOrdinal: 1,
+        roundOrdinal: 1,
         totalRounds: 3,
         drawerSessionId: "a",
         drawerNickname: "a",
@@ -73,7 +73,7 @@ describe("store reducer", () => {
       },
     });
     expect(started.room?.status).toBe("playing");
-    expect(started.room?.round?.ordinal).toBe(1);
+    expect(started.room?.turn?.turnOrdinal).toBe(1);
   });
 
   it("keeps word choices only until the next round clears them", () => {
@@ -81,10 +81,10 @@ describe("store reducer", () => {
     expect(withChoices.wordChoices).toEqual(["cat", "dog", "sun"]);
     const joined = reduce(withChoices, { type: "joined", sessionId: "a", room: room() });
     const started = reduce(joined, {
-      type: "roundStart",
-      round: {
-        ordinal: 2,
-        rotationOrdinal: 1,
+      type: "turnStart",
+      turn: {
+        turnOrdinal: 2,
+        roundOrdinal: 1,
         totalRounds: 3,
         drawerSessionId: "b",
         drawerNickname: "b",
@@ -97,12 +97,12 @@ describe("store reducer", () => {
     expect(started.wordChoices).toEqual([]);
   });
 
-  it("keeps the drawer's word across the drawing roundStart but clears it on a new round", () => {
+  it("keeps the drawer's word across the drawing turnStart but clears it on a new round", () => {
     const drawing = (ordinal: number, phase: "choosing" | "drawing"): ServerMessage => ({
-      type: "roundStart",
-      round: {
-        ordinal,
-        rotationOrdinal: 1,
+      type: "turnStart",
+      turn: {
+        turnOrdinal: ordinal,
+        roundOrdinal: 1,
         totalRounds: 3,
         drawerSessionId: "a",
         drawerNickname: "a",
@@ -113,12 +113,12 @@ describe("store reducer", () => {
       },
     });
     const joined = reduce(initialState, { type: "joined", sessionId: "a", room: room() });
-    // The drawer has chosen "cat" (store sets myWord); the drawing-phase roundStart must keep it.
+    // The drawer has chosen "cat" (store sets myWord); the drawing-phase turnStart must keep it.
     const drawingNow = reduce({ ...joined, myWord: "cat" }, drawing(1, "drawing"));
     expect(drawingNow.myWord).toBe("cat");
     // Round ends, then the next round opens in "choosing" — the word is cleared both times.
     const ended = reduce(drawingNow, {
-      type: "roundEnd",
+      type: "turnEnd",
       word: "cat",
       results: [],
       scores: [],
@@ -144,15 +144,15 @@ describe("store reducer", () => {
     expect(next.chat.at(-1)).toMatchObject({ kind: "correct", nickname: "b" });
   });
 
-  it("applies final scores and reveals the word on roundEnd", () => {
+  it("applies final scores and reveals the word on turnEnd", () => {
     const joined = reduce(initialState, { type: "joined", sessionId: "a", room: room() });
     const next = reduce(joined, {
-      type: "roundEnd",
+      type: "turnEnd",
       word: "cat",
       results: [{ sessionId: "b", nickname: "b", guessed: true, points: 50 }],
       scores: [{ sessionId: "b", nickname: "b", score: 50 }],
     });
-    expect(next.lastRound).toEqual({
+    expect(next.lastTurn).toEqual({
       word: "cat",
       results: [{ sessionId: "b", nickname: "b", guessed: true, points: 50 }],
     });

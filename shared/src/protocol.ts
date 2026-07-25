@@ -5,9 +5,14 @@
  * server is authoritative: guessers never receive the secret word, only its
  * pattern (blanks). Both `@gts/client` and `@gts/server` import from here.
  *
- * FROZEN (Phase 1f): inbound `ClientMessage`s are validated at the server
- * boundary by the zod schema in `@gts/server` (ws/schema.ts). Any change here
- * must be mirrored there. Treat protocol changes as "ask first".
+ * Vocabulary: a **turn** is one drawer's period; a **round** is a full rotation
+ * (one turn per player). `turnStart`/`turnEnd` carry per-turn state; `gameEnd`
+ * fires after the last turn of the last round.
+ *
+ * FROZEN (re-frozen 2026-07-25 after the round→turn rename): inbound
+ * `ClientMessage`s are validated at the server boundary by the zod schema in
+ * `@gts/server` (ws/schema.ts). Any change here must be mirrored there. Treat
+ * protocol changes as "ask first".
  */
 
 /** WebSocket endpoint path the client connects to. */
@@ -30,7 +35,7 @@ export interface RoomSettings {
 }
 
 export type RoomStatus = "lobby" | "playing" | "ended";
-export type RoundPhase = "choosing" | "drawing" | "intermission";
+export type TurnPhase = "choosing" | "drawing" | "intermission";
 
 /** Public per-player state safe to send to everyone. */
 export interface PlayerView {
@@ -43,12 +48,12 @@ export interface PlayerView {
   hasGuessed: boolean;
 }
 
-/** Public round state — note: never includes the secret word, only its pattern. */
-export interface RoundPublic {
+/** Public turn state — note: never includes the secret word, only its pattern. */
+export interface TurnPublic {
   /** Global turn index (1-based) — one drawer's period. Unique per turn. */
-  ordinal: number;
+  turnOrdinal: number;
   /** Current round (full rotation), 1-based; 1..totalRounds. */
-  rotationOrdinal: number;
+  roundOrdinal: number;
   /** Number of rounds (full rotations) in the game. */
   totalRounds: number;
   drawerSessionId: string;
@@ -56,7 +61,7 @@ export interface RoundPublic {
   /** Masked word, e.g. "_ _ _" for "cat"; real spaces are shown. */
   wordPattern: string;
   wordLength: number;
-  phase: RoundPhase;
+  phase: TurnPhase;
   /** Epoch ms when the drawing phase ends; null outside the drawing phase. */
   endsAt: number | null;
 }
@@ -66,7 +71,7 @@ export interface RoomView {
   status: RoomStatus;
   settings: RoomSettings;
   players: PlayerView[];
-  round: RoundPublic | null;
+  turn: TurnPublic | null;
 }
 
 export interface Score {
@@ -75,11 +80,11 @@ export interface Score {
   score: number;
 }
 
-export interface RoundResult {
+export interface TurnResult {
   sessionId: string;
   nickname: string;
   guessed: boolean;
-  /** Points earned this round. */
+  /** Points earned this turn. */
   points: number;
 }
 
@@ -110,14 +115,14 @@ export type ServerMessage
     | { type: "roomState"; room: RoomView }
     | { type: "playerJoined"; player: PlayerView }
     | { type: "playerLeft"; sessionId: string }
-    | { type: "roundStart"; round: RoundPublic }
+    | { type: "turnStart"; turn: TurnPublic }
     | { type: "wordChoices"; words: string[] }
     | { type: "drawBroadcast"; stroke: Stroke }
     | { type: "clearCanvas" }
     | { type: "guessResult"; correct: boolean }
     | { type: "chat"; nickname: string; text: string; kind: ChatKind }
     | { type: "correctGuess"; sessionId: string; nickname: string }
-    | { type: "roundEnd"; word: string; results: RoundResult[]; scores: Score[] }
+    | { type: "turnEnd"; word: string; results: TurnResult[]; scores: Score[] }
     | { type: "gameEnd"; scores: Score[] }
     | { type: "error"; code: ErrorCode; message: string };
 

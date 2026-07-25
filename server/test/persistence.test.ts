@@ -44,7 +44,7 @@ describe("persistence", () => {
     // the drawer draws one stroke and the other player guesses immediately.
     const words: string[] = [];
     while (room.status === "playing") {
-      const drawerId = room.round!.drawerSessionId;
+      const drawerId = room.turn!.drawerSessionId;
       const guesserId = drawerId === ada.sessionId ? bob.sessionId : ada.sessionId;
       const word = conns.get(drawerId)!.last("wordChoices")!.words[0]!;
       words.push(word);
@@ -64,12 +64,13 @@ describe("persistence", () => {
     expect(game.round_count).toBe(1); // 1 rotation configured
     expect(game.ended_at).not.toBeNull();
 
-    const rounds = await db.selectFrom("rounds").selectAll().orderBy("ordinal").execute();
-    expect(rounds).toHaveLength(2); // 1 rotation x 2 players
-    expect(rounds.map(r => r.word)).toEqual(words);
-    expect(JSON.parse(rounds[0]!.drawing!)).toHaveLength(1); // one recorded stroke per turn
+    const turns = await db.selectFrom("turns").selectAll().orderBy("ordinal").execute();
+    expect(turns).toHaveLength(2); // 1 round (rotation) x 2 players
+    expect(turns.map(t => t.word)).toEqual(words);
+    expect(turns.every(t => t.round_ordinal === 1)).toBe(true); // both turns in round 1
+    expect(JSON.parse(turns[0]!.drawing!)).toHaveLength(1); // one recorded stroke per turn
 
-    const results = await db.selectFrom("round_results").selectAll().execute();
+    const results = await db.selectFrom("turn_results").selectAll().execute();
     expect(results).toHaveLength(4); // drawer + guesser, per turn
 
     // Each player drew once (drawer points 50) and guessed once immediately (100) -> 150.

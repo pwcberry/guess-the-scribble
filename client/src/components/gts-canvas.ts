@@ -13,7 +13,7 @@ import {
   drawerNickname,
   isLocalDrawer,
   normalizePoint,
-  roundKey,
+  turnKey,
   type Point,
 } from "./canvas-helpers.ts";
 
@@ -50,7 +50,7 @@ export class GtsCanvas extends LitElement {
   private strokes: Stroke[] = [];
   /** The line currently under the pointer, not yet committed/sent. */
   private current: Stroke | null = null;
-  private lastRoundKey: number | null = null;
+  private lastTurnKey: number | null = null;
   private cssW = 0;
   private cssH = 0;
 
@@ -86,9 +86,9 @@ export class GtsCanvas extends LitElement {
     if (!changed.has("state")) {
       return;
     }
-    const key = roundKey(this.state);
-    if (key !== this.lastRoundKey) {
-      this.lastRoundKey = key;
+    const key = turnKey(this.state);
+    if (key !== this.lastTurnKey) {
+      this.lastTurnKey = key;
       this.reset();
     }
     // Lost drawing rights mid-line (phase ended); drop the in-progress stroke.
@@ -259,8 +259,8 @@ export class GtsCanvas extends LitElement {
   render() {
     const drawer = isLocalDrawer(this.state);
     const drawing = canDraw(this.state);
-    const round = this.state.room?.round ?? null;
-    const choosing = drawer && round?.phase === "choosing";
+    const turn = this.state.room?.turn ?? null;
+    const choosing = drawer && turn?.phase === "choosing";
     const choices = this.state.wordChoices;
 
     return html`
@@ -276,7 +276,7 @@ export class GtsCanvas extends LitElement {
         ></canvas>
         ${choosing && choices.length > 0 ? this.renderWordChoice(choices) : null}
       </div>
-      ${drawer ? this.renderToolbar(drawing) : this.renderWatcher(round?.phase ?? null)}
+      ${drawer ? this.renderToolbar(drawing) : this.renderWatcher(turn?.phase ?? null)}
     `;
   }
 

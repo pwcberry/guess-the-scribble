@@ -13,7 +13,7 @@ export class Player {
   connected = true;
   conn: Connection | null;
 
-  /** Reset each round: has this player guessed the word, and when. */
+  /** Reset each turn: has this player guessed the word, and when. */
   hasGuessed = false;
   guessedAt: number | null = null;
 

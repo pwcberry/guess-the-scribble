@@ -17,7 +17,7 @@ export interface ChatInputState {
 }
 
 export function chatInputState(state: GameState): ChatInputState {
-  const drawing = state.room?.round?.phase === "drawing";
+  const drawing = state.room?.turn?.phase === "drawing";
 
   if (drawing && isLocalDrawer(state)) {
     return {
@@ -39,6 +39,6 @@ export function chatInputState(state: GameState): ChatInputState {
     return { enabled: true, placeholder: "Type your guess…", note: null };
   }
 
-  // Choosing / intermission / no active round: messages are plain chat.
+  // Choosing / intermission / no active turn: messages are plain chat.
   return { enabled: true, placeholder: "Chat…", note: null };
 }

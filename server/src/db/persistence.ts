@@ -1,6 +1,6 @@
 import type { GameEvent, GameEventSink } from "../game/events.js";
 import type { Db } from "./connection.js";
-import { endGame, insertGame, saveRound } from "./games.js";
+import { endGame, insertGame, saveTurn } from "./games.js";
 
 export type PersistingSink = GameEventSink & { flush: () => Promise<void> };
 
@@ -14,8 +14,8 @@ async function handle(db: Db, event: GameEvent): Promise<void> {
         roundCount: event.roundCount,
       });
       break;
-    case "roundEnded":
-      await saveRound(db, event.data);
+    case "turnEnded":
+      await saveTurn(db, event.data);
       break;
     case "gameEnded":
       await endGame(db, { gameId: event.gameId, endedAt: event.endedAt, players: event.players });
@@ -26,7 +26,7 @@ async function handle(db: Db, event: GameEvent): Promise<void> {
 /**
  * Turn engine lifecycle events into durable writes. The engine emits events
  * synchronously in order; writes are chained on a single promise so they land in
- * that order (a round can't be written before its game row) without blocking the
+ * that order (a turn can't be written before its game row) without blocking the
  * game loop. `flush()` awaits the outstanding writes — used by tests and shutdown.
  */
 export function createGameEventSink(

@@ -1,6 +1,6 @@
 /**
  * Scoring model (tunable). Guessers earn a base amount plus a time bonus that
- * decays to zero as the round runs out — guessing early is worth more. The
+ * decays to zero as the turn runs out — guessing early is worth more. The
  * drawer earns in proportion to how many players guessed their drawing.
  */
 
