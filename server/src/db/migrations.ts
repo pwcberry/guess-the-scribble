@@ -2,9 +2,9 @@ import type { Kysely } from "kysely";
 import type { Migration, MigrationProvider } from "kysely/migration";
 
 /**
- * Migrations are defined inline (not read from disk) so the exact same set runs
- * under tsx in development, compiled JS in production, and vitest in tests —
- * with no dependency on file layout or dynamic import paths.
+ * Migrations are defined inline (not read from disk) so the exact same set
+ * runs under tsx in development, compiled JS in production, and vitest in
+ * tests — with no dependency on file layout or dynamic import paths.
  */
 
 const initial: Migration = {
@@ -15,15 +15,15 @@ const initial: Migration = {
       .addColumn("invite_code", "text", c => c.notNull().unique())
       .addColumn("settings", "text", c => c.notNull())
       .addColumn("status", "text", c => c.notNull())
-      .addColumn("created_at", "integer", c => c.notNull())
+      .addColumn("created_at", "bigint", c => c.notNull())
       .execute();
 
     await db.schema
       .createTable("games")
       .addColumn("id", "text", c => c.primaryKey())
       .addColumn("room_id", "text", c => c.notNull().references("rooms.id").onDelete("cascade"))
-      .addColumn("started_at", "integer", c => c.notNull())
-      .addColumn("ended_at", "integer")
+      .addColumn("started_at", "bigint", c => c.notNull())
+      .addColumn("ended_at", "bigint")
       .addColumn("round_count", "integer", c => c.notNull())
       .execute();
 
@@ -40,16 +40,16 @@ const initial: Migration = {
 
     await db.schema
       .createTable("turn_results")
-      .addColumn("id", "integer", c => c.primaryKey().autoIncrement())
+      .addColumn("id", "integer", c => c.primaryKey().generatedAlwaysAsIdentity())
       .addColumn("turn_id", "text", c => c.notNull().references("turns.id").onDelete("cascade"))
       .addColumn("nickname", "text", c => c.notNull())
-      .addColumn("guessed_at", "integer")
+      .addColumn("guessed_at", "bigint")
       .addColumn("points", "integer", c => c.notNull())
       .execute();
 
     await db.schema
       .createTable("players")
-      .addColumn("id", "integer", c => c.primaryKey().autoIncrement())
+      .addColumn("id", "integer", c => c.primaryKey().generatedAlwaysAsIdentity())
       .addColumn("game_id", "text", c => c.notNull().references("games.id").onDelete("cascade"))
       .addColumn("session_id", "text", c => c.notNull())
       .addColumn("nickname", "text", c => c.notNull())
@@ -65,7 +65,7 @@ const initial: Migration = {
 
     await db.schema
       .createTable("words")
-      .addColumn("id", "integer", c => c.primaryKey().autoIncrement())
+      .addColumn("id", "integer", c => c.primaryKey().generatedAlwaysAsIdentity())
       .addColumn("word", "text", c => c.notNull().unique())
       .addColumn("category", "text", c => c.notNull())
       .addColumn("difficulty", "text", c => c.notNull())

@@ -1,12 +1,12 @@
 import type { Generated } from "kysely";
 
 /**
- * Kysely table definitions for the SQLite database. The game is anonymous but
- * persistent: rooms, games, turns, results, per-game players, and the seeded
- * word list all live here. A round is a full rotation of turns; each turn row
- * records the round (rotation) it belonged to. JSON payloads (`settings`,
- * `drawing`) are stored as TEXT and (de)serialised at the query boundary.
- * Timestamps are epoch millis.
+ * Kysely table definitions for the PostgreSQL database. The game is anonymous
+ * but persistent: rooms, games, turns, results, per-game players, and the
+ * seeded word list all live here. A round is a full rotation of turns; each
+ * turn row records the round (rotation) it belonged to. JSON payloads
+ * (`settings`, `drawing`) are stored as TEXT and (de)serialised at the query
+ * boundary. Timestamps are epoch millis.
  */
 
 export interface RoomsTable {

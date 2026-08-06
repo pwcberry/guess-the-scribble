@@ -82,9 +82,68 @@ each commit must stay green — no intermediate split possible). Also folds R1c 
     and re-freeze note; `grep` sweep shows only `round`=rotation (plus `Math.round`/CSS).
   - Verified: lint + typecheck + 96 tests + build all clean. (Manual browser smoke pending.)
 
+## Phase 1g — DB Refactor: SQLite → PostgreSQL
+
+Replace `better-sqlite3` (SQLite) with `pg` (PostgreSQL) throughout the server DB layer.
+No game-logic, WS protocol, or client changes are in scope.
+Each step ends with `npm run lint` + `npm test` + `npm run typecheck` clean.
+
+- [x] **1g-1** Remove SQLite deps from `server/package.json`
+  - Remove `better-sqlite3` from `dependencies`; remove `@types/better-sqlite3` from `devDependencies`.
+- [x] **1g-2** Add PostgreSQL deps to `server/package.json`
+  - Add `pg` to `dependencies`; add `@types/pg` to `devDependencies`.
+  - Kysely already ships `PostgresDialect` — no extra plugin needed.
+- [x] **1g-3** Update `server/src/db/connection.ts`
+  - Replace `BetterSQLite3Dialect` import with `PostgresDialect` from `kysely`.
+  - Replace `DB_FILE` env-var with `DATABASE_URL` (standard PostgreSQL connection string).
+  - Initialise a `pg.Pool` from `DATABASE_URL` and pass it to `PostgresDialect`.
+  - Remove the synchronous `:memory:` shortcut; tests will use a real PostgreSQL test database.
+- [x] **1g-4** Update `server/src/db/schema.ts`
+  - Change SQLite auto-increment columns to PostgreSQL equivalents
+    (`INTEGER PRIMARY KEY AUTOINCREMENT` → `GENERATED ALWAYS AS IDENTITY`).
+  - Adjust Kysely `Database` interface types accordingly (e.g. `Generated<number>` for identity cols).
+- [x] **1g-5** Update `server/src/db/migrations.ts`
+  - Replace `INTEGER PRIMARY KEY AUTOINCREMENT` → `INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY`.
+  - Remove `PRAGMA foreign_keys = ON` — PostgreSQL enforces FKs by default.
+  - Remove `PRAGMA journal_mode = WAL` — not applicable to PostgreSQL.
+  - Replace `INSERT OR IGNORE` / `INSERT OR REPLACE` with `INSERT … ON CONFLICT DO NOTHING` /
+    `INSERT … ON CONFLICT … DO UPDATE`.
+- [x] **1g-6** Update `server/src/db/migrate.ts`
+  - Replace the SQLite-specific migration runner with a PostgreSQL-compatible one.
+  - `--reset`: drop tables in reverse-dependency order (or `DROP SCHEMA public CASCADE; CREATE SCHEMA public`) before re-running.
+- [x] **1g-7** Update `server/src/db/seed.ts`
+  - Verify word-list insertion uses `INSERT … ON CONFLICT DO NOTHING`.
+- [x] **1g-8** Update `server/src/db/setup.ts`
+  - Wire up the PostgreSQL connection; remove any `:memory:` database logic.
+- [x] **1g-9** Update `server/src/index.ts`
+  - Remove `DB_FILE` read; read `DATABASE_URL` for the database connection.
+- [x] **1g-10** Update the test harness (`server/test/helpers.ts` + vitest config)
+  - Remove the in-memory SQLite shortcut.
+  - Provide `DATABASE_URL` pointing at a local PostgreSQL **test** database via `.env.test`
+    (and CI environment variables).
+  - Add `beforeEach`/`afterEach` hooks that truncate tables (or wrap each test in a
+    rolled-back transaction) to keep test isolation.
+  - Add setup instructions to `README.md` for provisioning the test database.
+- [x] **1g-11** Update `CLAUDE.md`
+  - Remove all mentions of `better-sqlite3`, `DB_FILE`, `:memory:`, WAL, and FK pragmas.
+  - Describe `pg` + `PostgresDialect` + `DATABASE_URL` in the Persistence section.
+  - Update `db:migrate` / `db:reset` command descriptions.
+
+**Environment variable change:**
+
+| Old | New |
+|-----|-----|
+| `DB_FILE` (path to `.db` file, `:memory:` for tests) | `DATABASE_URL` (PostgreSQL connection string) |
+
+Default dev value: `postgresql://localhost:5432/gts`
+
+**PR:** `refactor/sqlite-to-postgres` — touches ≤ 12 server files + `CLAUDE.md`, well within the 25-file cap.
+
+---
+
 ## Phase 3 — Integration, e2e, deployment
 - [ ] **3a** Playwright e2e (two contexts; assert no word leak)
-- [ ] **3b** Multi-stage Dockerfile + docker-compose + SQLite volume
+- [ ] **3b** Multi-stage Dockerfile + Docker Compose (app container + PostgreSQL service)
 - [ ] **3c** Verify 7 success criteria; update `CLAUDE.md`
 
 <!--

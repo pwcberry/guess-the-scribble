@@ -1,11 +1,12 @@
 import type { AddressInfo } from "node:net";
 import type { FastifyInstance } from "fastify";
 import { WebSocket } from "ws";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
 import { createDb, type Db } from "../src/db/connection.js";
 import { seedWords } from "../src/db/seed.js";
 import { runMigrations } from "../src/db/setup.js";
+import { truncateAll } from "./helpers.js";
 
 function nextMessage(ws: WebSocket): Promise<{ type: string; [k: string]: unknown }> {
   return new Promise((resolve) => {
@@ -22,9 +23,17 @@ describe("WebSocket endpoint", () => {
   let app: FastifyInstance;
   let port: number;
 
-  beforeEach(async () => {
-    db = createDb(":memory:");
+  beforeAll(async () => {
+    db = createDb();
     await runMigrations(db);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+  });
+
+  beforeEach(async () => {
+    await truncateAll(db);
     await seedWords(db);
     app = await buildApp({ db, clientDist: null, logger: false });
     await app.listen({ port: 0, host: "127.0.0.1" });
@@ -33,7 +42,6 @@ describe("WebSocket endpoint", () => {
 
   afterEach(async () => {
     await app.close();
-    await db.destroy();
   });
 
   async function createRoom(): Promise<string> {

@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Status (see `.claude/tasks/todo.md` for the live plan):
 
-- **Server game engine — done (Phases 0–1).** Rooms/players, invite codes, WS join + reconnection, turn lifecycle (drawer rotation, word choices, timers), server-side guess matching + time-decay scoring, SQLite persistence of games/turns/results/drawings, and a **frozen** WS protocol with zod validation at the trust boundary. A **turn** is one drawer's period; a **round** is a full rotation (one turn per present player); a game runs `settings.rounds` rounds and ends after the last turn of the last round.
+- **Server game engine — done (Phases 0–1).** Rooms/players, invite codes, WS join + reconnection, turn lifecycle (drawer rotation, word choices, timers), server-side guess matching + time-decay scoring, PostgreSQL persistence of games/turns/results/drawings, and a **frozen** WS protocol with zod validation at the trust boundary. A **turn** is one drawer's period; a **round** is a full rotation (one turn per present player); a game runs `settings.rounds` rounds and ends after the last turn of the last round.
+- **DB refactor (Phase 1g) — pending.** The server DB layer currently uses SQLite (`better-sqlite3`). Phase 1g migrates it to PostgreSQL (`pg` + Kysely's `PostgresDialect`, `DATABASE_URL` env var). See `.claude/tasks/todo.md` for the step-by-step plan.
 - **Client — greenfield (Phase 2, in progress).** `client/src/my-element.ts` is still the generated Vite + Lit demo. The real WS client, lobby/join, drawing canvas, chat/guess, and turn HUD/scoreboard all still need building.
 - **Not started (Phase 3):** Playwright e2e, Dockerfile/compose, deployment.
 
@@ -33,8 +34,8 @@ npm run build        # shared → client → client-empties-dist → server (ord
 npm run typecheck    # build shared, then tsc --noEmit on client + server
 npm run lint         # eslint .
 npm test             # vitest run (non-interactive)
-npm run db:migrate   # apply migrations to the SQLite db (server workspace)
-npm run db:reset     # drop + re-migrate
+npm run db:migrate   # apply migrations to the PostgreSQL db (server workspace; needs DATABASE_URL)
+npm run db:reset     # drop + re-migrate (PostgreSQL)
 npm start            # node server/dist/index.js (serves built client + WS)
 npm run preview      # Vite preview of the built client
 ```
@@ -63,7 +64,7 @@ Fix any failures before committing rather than committing around them. Do not co
 - **Fastify** (`server/src/app.ts` `buildApp()`) with `@fastify/websocket` (game endpoint at `WS_PATH` = `/ws`) and `@fastify/static` (serves the built client with an SPA fallback to `index.html` for non-`/api`, non-`/ws` GET routes). `buildApp` is **dependency-injected** (`db`, optional `clientDist`) so integration tests run it against an in-memory DB with no static assets. `server/src/index.ts` is the thin bootstrap: open DB → migrate → seed → `buildApp` → listen.
 - **Game engine (`server/src/game`).** `RoomRegistry` indexes active rooms by invite code and injects shared deps (word pool, `Scheduler` clock, persistence event sink) into each `Room`. `Room` owns **all** game state and outbound messages — the WS layer is a dumb transport adapter. Per-turn state machine: `choosing → drawing → intermission`; turns are grouped into rounds (full rotations) via a per-round drawer queue. The `Scheduler` is **injectable** (`FakeScheduler` in tests) so turn/timer logic is deterministic.
 - **WS handlers (`server/src/ws/handlers.ts`).** Each socket must send `join` first; on success it's bound to a room + session and further messages dispatch to `room.handleMessage(sessionId, msg)`. Inbound messages are validated by the **zod** schema in `ws/schema.ts` (`parseClientMessage`) at the trust boundary — malformed/invalid are rejected with an `error` message.
-- **Persistence (`server/src/db`).** SQLite via **`better-sqlite3`** + **`kysely`** (typed query builder). WAL + FK pragmas, inline migrations, word seed. `createGameEventSink` chains ordered async writes off engine events and exposes `flush()` for tests/shutdown. Reads `DB_FILE` (default `<repo>/data/gts.db`, `:memory:` for ephemeral). Server code uses `nodenext` ESM — local imports carry `.js` specifiers that point at `.ts` sources; don't import client (bundler-mode) `.ts` files here.
+- **Persistence (`server/src/db`).** PostgreSQL via **`pg`** + **`kysely`** (typed query builder, `PostgresDialect`). Versioned inline migrations, word seed. `createGameEventSink` chains ordered async writes off engine events and exposes `flush()` for tests/shutdown. Reads `DATABASE_URL` (default `postgresql://localhost:5432/gts`; set to a dedicated test database for the test suite). Server code uses `nodenext` ESM — local imports carry `.js` specifiers that point at `.ts` sources; don't import client (bundler-mode) `.ts` files here.
 
 ## Shared protocol (`@gts/shared`)
 

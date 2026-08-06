@@ -1,7 +1,18 @@
+import { sql } from "kysely";
 import type { ServerMessage } from "@gts/shared";
+import type { Db } from "../src/db/connection.js";
 import type { Connection } from "../src/game/connection.js";
 import type { Room } from "../src/game/room.js";
 import type { Cancel, Scheduler } from "../src/game/scheduler.js";
+
+/**
+ * Truncate all game tables and restart their identity sequences. Call this in
+ * beforeEach for tests that use a shared PostgreSQL database so each test
+ * starts with a clean slate without reconnecting.
+ */
+export async function truncateAll(db: Db): Promise<void> {
+  await sql`TRUNCATE TABLE rooms, games, turns, turn_results, players, words RESTART IDENTITY CASCADE`.execute(db);
+}
 
 /** Records everything the server sends to one player. */
 export class FakeConn implements Connection {

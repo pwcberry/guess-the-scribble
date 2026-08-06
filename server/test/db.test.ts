@@ -1,18 +1,23 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createDb, type Db } from "../src/db/connection.js";
 import { runMigrations } from "../src/db/setup.js";
 import { seedWords } from "../src/db/seed.js";
+import { truncateAll } from "./helpers.js";
 
 describe("database", () => {
   let db: Db;
 
-  beforeEach(async () => {
-    db = createDb(":memory:");
+  beforeAll(async () => {
+    db = createDb();
     await runMigrations(db);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await db.destroy();
+  });
+
+  beforeEach(async () => {
+    await truncateAll(db);
   });
 
   it("creates the schema and seeds words", async () => {
