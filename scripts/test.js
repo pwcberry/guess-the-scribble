@@ -15,8 +15,10 @@ function run(command, args, { allowFailure = false } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: "inherit",
-      // `shell: true` on Windows lets us find `docker` / `npx` shims (`.cmd`)
-      // on PATH without hard-coding an extension.
+      // `shell: true` on Windows lets us find `docker` / `npx` shims (`.cmd`) on PATH without hard-coding an extension.
+      // However, Node will emit the following warning:
+      // (node:31900) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to
+      // security vulnerabilities, as the arguments are not escaped, only concatenated.
       shell: isWindows,
     });
     child.on("error", reject);
