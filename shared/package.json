@@ -5,11 +5,11 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/protocol.d.ts",
-      "default": "./dist/protocol.js"
+      "types": "./lib/protocol.d.ts",
+      "default": "./lib/protocol.js"
     }
   },
-  "types": "./dist/protocol.d.ts",
+  "types": "./lib/protocol.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",

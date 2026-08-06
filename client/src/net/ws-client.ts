@@ -44,8 +44,17 @@ export interface GameClientOptions {
 const SESSION_KEY = "gts:sessionId";
 const DEFAULT_BACKOFF = [500, 1000, 2000, 5000];
 
-/** Same-origin `ws(s)://…/ws` URL for the current page. */
+/**
+ * Same-origin `ws(s)://…/ws` URL for the current page. Respects an optional
+ * `VITE_WS_URL` build-time override (e.g. when the client dev server runs on a
+ * different port than the API — the checked-in `vite.config.ts` proxies `/ws`
+ * so the default derivation works in dev too).
+ */
 function resolveUrl(): string {
+  const override = import.meta.env.VITE_WS_URL;
+  if (typeof override === "string" && override.length > 0) {
+    return override;
+  }
   const scheme = location.protocol === "https:" ? "wss:" : "ws:";
   return `${scheme}//${location.host}${WS_PATH}`;
 }

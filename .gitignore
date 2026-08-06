@@ -149,3 +149,9 @@ vite.config.ts.timestamp-*
 .vscode
 *.private.env.json
 
+# Assembled deploy artifact (Heroku slug layout)
+deploy/
+!deploy/heroku.yml
+
+# Shared library
+shared/lib

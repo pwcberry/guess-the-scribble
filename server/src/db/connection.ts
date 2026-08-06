@@ -28,12 +28,38 @@ export function connectionUrl(): string {
 }
 
 /**
+ * Should the `pg` pool use TLS? Heroku Postgres (and most managed providers)
+ * require it, but presents a certificate that isn't in Node's default trust
+ * store, so we accept the server cert without verifying the CA chain
+ * (`rejectUnauthorized: false`). Local Postgres (localhost / 127.0.0.1) runs
+ * plaintext by default. The behaviour can be forced either way with
+ * `DATABASE_SSL=true|false`.
+ */
+export function shouldUseSsl(url: string): boolean {
+  const override = process.env.DATABASE_SSL;
+  if (override === "true") {
+    return true;
+  }
+  if (override === "false") {
+    return false;
+  }
+  try {
+    const host = new URL(url).hostname;
+    return host !== "localhost" && host !== "127.0.0.1" && host !== "::1";
+  }
+  catch {
+    return false;
+  }
+}
+
+/**
  * Open a PostgreSQL connection pool and wrap it in a typed Kysely instance.
  * Credentials (`PGUSER`, `PGPASSWORD`) are read from the environment by the
  * `pg` driver automatically — they must not be embedded in `url`.
  * Call `db.destroy()` to drain the pool when done.
  */
 export function createDb(url: string = connectionUrl()): Db {
-  const pool = new pg.Pool({ connectionString: url });
+  const ssl = shouldUseSsl(url) ? { rejectUnauthorized: false } : undefined;
+  const pool = new pg.Pool({ connectionString: url, ssl });
   return new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 }
