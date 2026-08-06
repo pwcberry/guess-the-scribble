@@ -1,3 +1,4 @@
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { buildApp } from "./app.js";
 import { createDb } from "./db/connection.js";
@@ -7,9 +8,10 @@ import { runMigrations } from "./db/setup.js";
 /**
  * guess-the-scribble server bootstrap.
  *
- * Opens the SQLite database, brings it up to date (migrate + seed on boot so a
- * fresh checkout is playable with no extra steps), builds the Fastify app, and
- * starts listening. Rooms/rounds/scoring live in the game engine (server/game).
+ * Opens a PostgreSQL connection pool (DATABASE_URL), brings the schema up to
+ * date (migrate + seed on boot so a fresh checkout is playable with no extra
+ * steps), builds the Fastify app, and starts listening. Rooms/turns/scoring
+ * live in the game engine (server/game).
  */
 
 const PORT = Number(process.env.PORT ?? 3000);

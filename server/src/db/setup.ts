@@ -11,3 +11,19 @@ export async function runMigrations(db: Db): Promise<readonly MigrationResult[]>
   }
   return results ?? [];
 }
+
+/**
+ * Roll back all migrations in reverse order. Use this for `db:reset` before
+ * re-running `runMigrations` to get a clean slate.
+ */
+export async function resetDb(db: Db): Promise<void> {
+  const migrator = new Migrator({ db, provider: new InlineMigrationProvider() });
+  let hasMore = true;
+  while (hasMore) {
+    const { error, results } = await migrator.migrateDown();
+    if (error) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+    hasMore = (results?.length ?? 0) > 0;
+  }
+}

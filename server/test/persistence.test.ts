@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createDb, type Db } from "../src/db/connection.js";
 import { createGameEventSink } from "../src/db/persistence.js";
 import { insertRoom } from "../src/db/rooms.js";
@@ -6,19 +6,23 @@ import { seedWords } from "../src/db/seed.js";
 import { runMigrations } from "../src/db/setup.js";
 import { RoomRegistry } from "../src/game/registry.js";
 import { WordPool } from "../src/game/words.js";
-import { FakeScheduler, joinRoom } from "./helpers.js";
+import { FakeScheduler, joinRoom, truncateAll } from "./helpers.js";
 
 describe("persistence", () => {
   let db: Db;
 
-  beforeEach(async () => {
-    db = createDb(":memory:");
+  beforeAll(async () => {
+    db = createDb();
     await runMigrations(db);
-    await seedWords(db);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await db.destroy();
+  });
+
+  beforeEach(async () => {
+    await truncateAll(db);
+    await seedWords(db);
   });
 
   it("persists a full game: game, round, results, drawing, and players", async () => {

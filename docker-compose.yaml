@@ -1,0 +1,12 @@
+services:
+  database:
+    image: postgres:alpine
+    container_name: guess-the-scribble-postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${PGUSER:-scribbler}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?Set PGPASSWORD in .env (see .env.example)}
+      POSTGRES_DB: ${PGDATABASE:-gts}
+    volumes:
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro

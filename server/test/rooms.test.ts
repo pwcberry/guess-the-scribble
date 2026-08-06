@@ -1,23 +1,31 @@
 import type { FastifyInstance } from "fastify";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
 import { createDb, type Db } from "../src/db/connection.js";
 import { runMigrations } from "../src/db/setup.js";
+import { truncateAll } from "./helpers.js";
 
 describe("POST /api/rooms", () => {
   let db: Db;
   let app: FastifyInstance;
 
-  beforeEach(async () => {
-    db = createDb(":memory:");
+  beforeAll(async () => {
+    db = createDb();
     await runMigrations(db);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+  });
+
+  beforeEach(async () => {
+    await truncateAll(db);
     app = await buildApp({ db, clientDist: null, logger: false });
     await app.ready();
   });
 
   afterEach(async () => {
     await app.close();
-    await db.destroy();
   });
 
   it("creates a room with a 6-char invite code and persists it", async () => {

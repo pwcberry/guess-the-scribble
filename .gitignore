@@ -149,8 +149,3 @@ vite.config.ts.timestamp-*
 .vscode
 *.private.env.json
 
-# SQLite database files (runtime data)
-data/
-*.db
-*.db-wal
-*.db-shm
