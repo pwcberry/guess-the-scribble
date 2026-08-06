@@ -34,9 +34,6 @@ function run(command, args, { allowFailure = false } = {}) {
 async function main() {
   let exitCode;
   try {
-    // Ensure `@gts/shared` is compiled — vitest resolves it via its emitted
-    // `dist/` (see shared/package.json `exports`). Cheap no-op if already built.
-    await run("npm", ["run", "build", "-w", "@gts/shared"]);
     // `--wait` blocks until the healthcheck passes.
     await run("docker", ["compose", "up", "-d", "--wait"]);
     exitCode = await run("npx", ["vitest", "run"], { allowFailure: true });
