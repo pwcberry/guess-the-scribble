@@ -1,10 +1,10 @@
-# guess-the-scribble
+# Guess The Scribble
 
 A skribbl.io clone.
 
 ## Prerequisites
 
-- **Node.js** 20+
+- **Node.js** 24+
 - **PostgreSQL** 14+ running locally (or a remote instance)
 
 ## Quick start
@@ -32,9 +32,8 @@ npm run dev
 > The `pg` driver reads them automatically.
 
 ## Running tests
-
-The test database (`gts_test`) is created automatically by `docker/init-test-db.sql`
-when the Docker container first starts.
+Start the PostgreSQL container and create the test database. The database (`gts_test`) is created automatically by
+`docker/init-test-db.sql` when the Docker container first starts.
 
 ```bash
 # Start PostgreSQL if not already running
@@ -44,7 +43,6 @@ docker compose up -d
 # (vitest.config.ts); PGUSER/PGPASSWORD come from .env
 npm test
 ```
-
 
 ## Reset the database
 
