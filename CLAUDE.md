@@ -11,7 +11,7 @@ Status (see `.claude/tasks/todo.md` for the live plan):
 - **Server game engine — done (Phases 0–1).** Rooms/players, invite codes, WS join + reconnection, turn lifecycle (drawer rotation, word choices, timers), server-side guess matching + time-decay scoring, PostgreSQL persistence of games/turns/results/drawings, and a **frozen** WS protocol with zod validation at the trust boundary. A **turn** is one drawer's period; a **round** is a full rotation (one turn per present player); a game runs `settings.rounds` rounds and ends after the last turn of the last round.
 - **DB refactor (Phase 1g) — pending.** The server DB layer currently uses SQLite (`better-sqlite3`). Phase 1g migrates it to PostgreSQL (`pg` + Kysely's `PostgresDialect`, `DATABASE_URL` env var). See `.claude/tasks/todo.md` for the step-by-step plan.
 - **Client — greenfield (Phase 2, in progress).** `client/src/my-element.ts` is still the generated Vite + Lit demo. The real WS client, lobby/join, drawing canvas, chat/guess, and turn HUD/scoreboard all still need building.
-- **Not started (Phase 3):** Playwright e2e, Dockerfile/compose, deployment.
+- **Not started (Phase 3):** Playwright e2e, Heroku deployment (single-dyno; client + server + shared assembled into a top-level `deploy/` folder that `npm start` boots as `node deploy/server/index.js`).
 
 ## Repository layout
 
@@ -36,7 +36,7 @@ npm run lint         # eslint .
 npm test             # vitest run (non-interactive)
 npm run db:migrate   # apply migrations to the PostgreSQL db (server workspace; needs DATABASE_URL)
 npm run db:reset     # drop + re-migrate (PostgreSQL)
-npm start            # node server/dist/index.js (serves built client + WS)
+npm start            # node deploy/server/index.js (serves built client + WS from deploy/)
 npm run preview      # Vite preview of the built client
 ```
 
@@ -79,7 +79,7 @@ Still the Vite/Lit demo. When building the real client, it must connect to the s
 
 ## Config caveats
 
-- **Dev = three processes.** `npm run dev` runs `@gts/shared` (tsc watch), `@gts/client` (Vite), and `@gts/server` (`tsx --watch`) in parallel via `concurrently`. `predev` builds shared once up front. In dev the client is served by Vite and connects to the server's `/ws`; only the production build (`npm start`) has the Node server serve `client/dist`.
+- **Dev = three processes.** `npm run dev` runs `@gts/shared` (tsc watch), `@gts/client` (Vite), and `@gts/server` (`tsx --watch`) in parallel via `concurrently`. `predev` builds shared once up front. In dev the client is served by Vite (which proxies `/ws` and `/api` to the Fastify server); only the production build assembles `deploy/`, which the Node server serves from (`npm start` → `node deploy/server/index.js`).
 - **Vitest resolves `.js` → `.ts`.** `vitest.config.ts` sets `resolve.extensionAlias` so the server's `nodenext` `.js` specifiers load their `.ts` sources under Vite. Tests live in `{shared,server}/test/**/*.test.ts` (`environment: node`). No client tests yet.
 
 ## Architecture & TypeScript

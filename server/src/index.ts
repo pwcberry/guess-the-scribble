@@ -1,4 +1,5 @@
 import process from "node:process";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildApp } from "./app.js";
 import { createDb } from "./db/connection.js";
@@ -16,12 +17,21 @@ import { runMigrations } from "./db/setup.js";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
-// In production `npm start` runs from the repo root and the built client lives
-// at client/dist; override with CLIENT_DIST (e.g. in Docker). In development the
-// client is served by Vite, so this directory need not exist.
+// The production layout assembles everything into a top-level `deploy/` folder:
+//   deploy/server/index.js  ← this file, after `tsc` + copy
+//   deploy/client/          ← Vite bundle
+// So the default client bundle is a sibling of the compiled server. `CLIENT_DIST`
+// overrides it (e.g. for tests or a non-standard layout). In dev the client is
+// served by Vite, so this directory need not exist.
 const clientDist
   = process.env.CLIENT_DIST
-    ?? fileURLToPath(new URL("../../client/dist", import.meta.url));
+    ?? fileURLToPath(new URL("../client", import.meta.url));
+
+if (!existsSync(clientDist)) {
+  // Warn but do not crash: WS-only integration setups (or tests) may boot the
+  // server without a built client on disk.
+  console.warn(`[gts] client bundle not found at ${clientDist}; SPA will not be served`);
+}
 
 const db = createDb();
 await runMigrations(db);

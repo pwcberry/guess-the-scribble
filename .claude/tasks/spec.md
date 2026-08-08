@@ -38,7 +38,8 @@ start by sharing a link.
 | Query/migrations | `kysely` with its built-in `SqliteDialect` (type-safe queries + migrator) |
 | Testing          | Vitest (unit/integration) + Playwright (e2e)                              |
 | Shared           | A `shared/` package holding wire-protocol types used by both ends         |
-| Packaging        | Docker — multi-stage build, single image serving API + built client       |
+| Packaging        | Single deployable Node app — server serves API + WebSocket + built client |
+| Hosting          | Heroku (single web dyno) + Heroku Postgres add-on                         |
 
 **Rationale for native WebSockets:** matches the vanilla ethos, no extra client
 dependency, and the message set here is small enough to hand-define with shared TS types.
@@ -265,15 +266,107 @@ Prettier; linting via ESLint (typescript-eslint).
 
 ## Deployment
 
-Packaged as a **Docker** image via a multi-stage build:
-1. Build stage: install deps, build `client` (Vite) and `server` (tsc).
-2. Runtime stage: slim Node base, production deps only, Fastify serves the API + WebSocket
-   and the built client via `@fastify/static`.
+Packaged as a **single Node application deployed to Heroku** (one web dyno). The server
+(`@gts/server`) serves the JSON API, the WebSocket endpoint (`/ws`), *and* the built client
+bundle from `client/dist` via `@fastify/static`. There is no separate frontend host — the
+client, server, and shared protocol are bundled into one deployable unit.
 
-Configuration via env vars (DB file path, port, etc.). The SQLite file lives on a mounted
-volume so data survives container restarts. A `docker-compose.yml` wires the app to that
-volume for local/prod parity. `better-sqlite3` is a native module — the build stage must
-compile it against the runtime image's Node/platform (build in the same base image).
+**Runtime shape**
+- One process: `node deploy/server/index.js` (the root `npm start` points at the
+  `deploy/` tree). Server code continues to run as plain Node ES modules (`nodenext`); no
+  bundler is applied to it.
+- Heroku Postgres provides `DATABASE_URL`; the app reads it directly (`server/src/db/connection.ts`),
+  enables TLS when the URL points at Heroku (`sslmode=require` or `DATABASE_SSL=true`), and
+  runs `runMigrations` + `seedWords` on boot so a fresh dyno is playable immediately.
+- Heroku sets `PORT` and expects the app to bind `0.0.0.0`; already handled by
+  `server/src/index.ts`.
+- The client is a static SPA. In production it is served from the same origin as the API,
+  so the client's WebSocket URL is derived from `window.location` (`wss:` under HTTPS,
+  `ws:` otherwise) at `/ws` — no build-time server URL is baked in. Dev keeps Vite on its
+  own port, pointing at `ws://localhost:3000/ws`.
+
+**Deploy artifact layout.** All production-ready output is assembled into a single
+top-level `deploy/` folder at the repo root — this is the deployable unit that Heroku (and
+`npm start` locally) executes. The `build` pipeline emits into it directly (or copies each
+workspace's `dist/` into it as a final step) so nothing outside `deploy/` and its
+`node_modules` is required at runtime:
+
+```
+deploy/
+├─ server/          → compiled server (from server/src → server/dist → deploy/server)
+├─ client/          → built client bundle (Vite output → deploy/client)
+├─ shared/          → compiled shared protocol (.js + .d.ts)
+├─ package.json     → runtime manifest (production deps, "start": "node server/index.js",
+│                     "engines.node")
+└─ node_modules/    → production-only install
+```
+
+The root `npm start` becomes `node deploy/server/index.js`; `CLIENT_DIST` defaults to
+`deploy/client`. `deploy/` is git-ignored and rebuilt from source on every deploy /
+`npm run build`.
+
+**Build pipeline (Heroku `heroku-postbuild`)**
+1. `npm ci` (Heroku runs this before the postbuild hook; dev dependencies must be available
+   because we compile TypeScript and bundle the client). Set `NPM_CONFIG_PRODUCTION=false`
+   or keep the toolchain (`typescript`, `vite`, `@vitejs/plugin-*`) in `dependencies` for
+   the workspaces that need them so the build step has what it needs.
+2. `npm run build` — builds in order: `@gts/shared` (tsc), `@gts/client` (Vite),
+   `@gts/server` (tsc), then assembles the top-level `deploy/` folder (server + client +
+   shared + a slimmed runtime `package.json`). Build order is unchanged.
+3. Heroku prunes dev dependencies after the postbuild hook; the runtime slug carries the
+   `deploy/` tree and production `node_modules`.
+4. Release / boot: `npm start` runs `node deploy/server/index.js`, which migrates the
+   database and listens on `$PORT`.
+
+**Local execution parity.** The same artifacts run locally with no Heroku-specific glue:
+
+```
+npm ci
+npm run build
+DATABASE_URL=postgresql://localhost:5432/gts npm start
+```
+
+Dev mode (`npm run dev`) is unchanged: shared watch + Vite + `tsx --watch` in three
+processes, with the client hitting `ws://localhost:3000/ws`.
+
+**Required code / config changes to land this**
+- **Server static serving.** `buildApp()` already registers `@fastify/static` and an SPA
+  fallback when `clientDist` exists. `server/src/index.ts` must resolve `CLIENT_DIST`
+  relative to the compiled server so the path works from Heroku's slug root
+  (`deploy/server` → `../client`). Add a startup log if the directory is missing so a
+  mis-configured deploy fails loudly.
+- **Client → server WS URL.** `client/src/net/ws-client.ts` must construct the WS URL from
+  `window.location` in production. Support an optional `VITE_WS_URL` override for
+  non-default local setups; default to `${wsProto}//${location.host}/ws`.
+- **Server code stays Node modules.** Server continues to compile with `tsc` under
+  `nodenext`; do **not** bundle it. Local `.js` specifiers pointing at `.ts` sources are
+  preserved. `@gts/shared` is consumed via its emitted `dist` through the npm-workspace
+  symlink, which Heroku preserves.
+- **TypeScript config.**
+  - `shared/tsconfig.json`: unchanged (emits `dist` + `.d.ts`).
+  - `server/tsconfig.json`: ensure `outDir: server/dist`, `rootDir: server/src`,
+    `module`/`moduleResolution: nodenext`, `sourceMap: true` for prod debugging, and
+    `declaration: false` (server is not consumed as a library).
+  - `client/tsconfig.json`: stays bundler-mode, `noEmit`; Vite performs the transpile.
+    Add a `client/tsconfig.node.json` reference only if `vite.config.ts` needs it.
+  - Root `tsconfig.json`: keep project references so `npm run typecheck` covers all three.
+- **`package.json` scripts.**
+  - Add `"heroku-postbuild": "npm run build"` at the repo root so Heroku produces the
+    slug artifacts.
+  - Add `"engines": { "node": ">=22" }` at the repo root to pin Heroku's Node stack.
+  - Keep `"start": "node server/dist/index.js"` — Heroku uses it by default; no `Procfile`
+    required (add one only if we later need a `release` phase for migrations).
+- **Database connection.** `server/src/db/connection.ts` must enable TLS when
+  `DATABASE_URL` targets Heroku (`ssl: { rejectUnauthorized: false }` when the URL host is
+  not localhost, or gated on `DATABASE_SSL=true`). Migrations still run on boot; a Heroku
+  `release` phase remains optional.
+- **Env vars on Heroku.** `DATABASE_URL` (auto-set by the Heroku Postgres add-on), `PORT`
+  (auto-set), `NODE_ENV=production`, optional `DATABASE_SSL=true`, optional `CLIENT_DIST`
+  override.
+
+**Non-goals for this deployment iteration.** No Docker image, no multi-service compose, no
+CDN in front of the static assets. Docker/Compose remain available for local Postgres in
+development only (see `docker-compose.yaml`).
 
 ## Success Criteria (testable)
 
@@ -292,7 +385,8 @@ _All resolved for v1:_
 - **Drawing persistence:** replayable stroke JSON (no PNG).
 - **Reconnection:** dropped players may rejoin an in-progress game via `sessionId`.
 - **Word list:** built-in English-only list.
-- **Hosting:** Docker (multi-stage image, SQLite on a mounted volume).
+- **Hosting:** Heroku (single web dyno running the compiled Node server, which also
+  serves the built client) + Heroku Postgres add-on for `DATABASE_URL`.
 
 - **`round`/`turn` naming (RESOLVED 2026-07-25):** rename in the protocol — `turn` for the
   per-drawer concept (was `round`), plus a new `round` = full-rotation grouping and a

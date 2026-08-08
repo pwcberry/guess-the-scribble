@@ -5,9 +5,9 @@ import stylistic from "@stylistic/eslint-plugin";
 import {defineConfig, globalIgnores} from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['**/dist']),
+  globalIgnores(['**/dist', '**/lib', 'deploy']),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx}', 'scripts/*.js'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,

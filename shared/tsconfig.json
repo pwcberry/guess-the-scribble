@@ -10,7 +10,7 @@
 
     "declaration": true,
     "rootDir": "./src",
-    "outDir": "./dist",
+    "outDir": "./lib",
 
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",

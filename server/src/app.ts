@@ -40,6 +40,25 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   if (clientDist && existsSync(clientDist)) {
     await app.register(fastifyStatic, { root: clientDist, wildcard: false });
 
+    // Cache policy for the SPA bundle: Vite emits hashed filenames under
+    // `/assets/*` (safe to cache forever); everything else (index.html, icons,
+    // favicon) must revalidate so a new deploy is picked up immediately.
+    app.addHook("onSend", async (request, reply) => {
+      if (request.method !== "GET") {
+        return;
+      }
+      const url = request.raw.url ?? "";
+      if (url.startsWith("/api") || url.startsWith("/ws")) {
+        return;
+      }
+      if (url.startsWith("/assets/")) {
+        reply.header("Cache-Control", "public, max-age=31536000, immutable");
+      }
+      else {
+        reply.header("Cache-Control", "no-cache");
+      }
+    });
+
     // SPA fallback: unknown non-API, non-WS GET routes get the client shell.
     app.setNotFoundHandler((request, reply) => {
       const url = request.raw.url ?? "/";

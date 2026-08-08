@@ -143,8 +143,139 @@ Default dev value: `postgresql://localhost:5432/gts`
 
 ## Phase 3 — Integration, e2e, deployment
 - [ ] **3a** Playwright e2e (two contexts; assert no word leak)
-- [ ] **3b** Multi-stage Dockerfile + Docker Compose (app container + PostgreSQL service)
+- [ ] **3b** Heroku deployment: bundle client + server + shared into one deployable Node app
+      (see Phase 3b breakdown below); no Docker image ships in v1.
 - [ ] **3c** Verify 7 success criteria; update `CLAUDE.md`
+
+### Phase 3b — Heroku single-dyno deployment
+
+The client, server, and shared protocol ship as one Node application on Heroku. All
+production artifacts are assembled into a single top-level **`deploy/`** folder at the
+repo root (`deploy/server`, `deploy/client`, `deploy/shared`, `deploy/package.json`,
+`deploy/node_modules`) — this is the deployable unit. The compiled server
+(`node deploy/server/index.js`) serves the API, the `/ws` WebSocket, and the built client
+from `deploy/client` via `@fastify/static`. Server code stays plain Node ESM (no bundler);
+the client is a Vite production bundle. Every artifact must also run locally with
+`npm ci && npm run build && DATABASE_URL=… npm start` — no Heroku-specific glue.
+
+Each task ends with `npm run lint` + `npm test` + `npm run typecheck` clean.
+
+- [x] **3b-1** Server: robust static-assets wiring
+  - `server/src/index.ts`: resolve `CLIENT_DIST` (default) relative to the compiled
+    server location so the same path works from Heroku's slug root
+    (`deploy/server` → `../client`) and from a local `npm start`. Log an explicit warning
+    (not a crash) if the directory is missing.
+  - `server/src/app.ts`: keep the existing `@fastify/static` + SPA-fallback registration.
+    Confirm the fallback still excludes `/api` and `/ws`, and add a cache header for
+    hashed Vite assets (`Cache-Control: public, max-age=31536000, immutable` for
+    `/assets/*`, no-cache for `index.html`).
+  - Files: `server/src/index.ts`, `server/src/app.ts`.
+  - Verify: `npm run build && npm start` locally serves the SPA at `/` and `/ws` still works.
+  - Done: `CLIENT_DIST` default now `new URL("../client", import.meta.url)` (`deploy/client`
+    when booted from `deploy/server/index.js`), with a `console.warn` when missing.
+    `app.ts` adds an `onSend` hook that stamps immutable cache on `/assets/*` and
+    `no-cache` on everything else (excluding `/api`/`/ws`). Verified: lint + typecheck +
+    96/96 tests clean; `npm run build` produces `deploy/`.
+
+- [x] **3b-2** Client: derive the WebSocket URL from `window.location`
+  - `client/src/net/ws-client.ts`: build the WS URL at runtime — `wss:` under HTTPS else
+    `ws:`, host from `window.location.host`, path `/ws`. Support an optional
+    `import.meta.env.VITE_WS_URL` override for non-default local setups.
+  - Ensure the Vite dev server proxies `/ws` to `ws://localhost:3000` (or the client uses
+    the override in dev). Update `client/vite.config.ts` if a proxy is chosen.
+  - Files: `client/src/net/ws-client.ts`, `client/vite.config.ts`, `client/test/ws-client.test.ts`.
+  - Verify: existing WS-client tests updated; manual dev + prod smoke.
+  - Done: `resolveUrl()` now honours `import.meta.env.VITE_WS_URL` before falling back to
+    the same-origin `${wsProto}//${host}/ws` derivation. `vite.config.ts` already proxies
+    `/ws` + `/api` to the Fastify server, so dev needs no override. Existing ws-client
+    tests still pass (they inject `url` directly).
+
+- [x] **3b-3** Database connection: Heroku Postgres TLS
+  - `server/src/db/connection.ts`: enable `ssl: { rejectUnauthorized: false }` on the
+    `pg.Pool` when `DATABASE_URL`'s host is not `localhost`/`127.0.0.1`, or when
+    `DATABASE_SSL=true`. Keep the default off for local Postgres.
+  - Confirm `runMigrations` + `seedWords` still run on boot from `server/src/index.ts`
+    (a Heroku `release` phase remains optional for now).
+  - Files: `server/src/db/connection.ts`.
+  - Verify: server tests still pass against local Postgres; document the SSL toggle in `README.md`.
+  - Done: `shouldUseSsl(url)` gates `ssl: { rejectUnauthorized: false }` — auto-enabled for
+    non-`localhost`/`127.0.0.1`/`::1` hosts, overridable via `DATABASE_SSL=true|false`.
+    Tests still target local Postgres → no SSL. README lists `DATABASE_SSL` in the Heroku
+    config-vars table.
+
+- [x] **3b-4** TypeScript compiler configuration
+  - `server/tsconfig.json`: confirm `outDir: "dist"`, `rootDir: "src"`,
+    `module`/`moduleResolution: "nodenext"`, `sourceMap: true`, `declaration: false`, and
+    that `"include"` is scoped to `src/**/*.ts` (so `test/` never lands in the compiled
+    output).
+  - `shared/tsconfig.json`: keep emitting `dist` + `.d.ts`; ensure `"include"` excludes tests.
+  - `client/tsconfig.json`: unchanged (bundler-mode, `noEmit`); Vite handles transpile.
+  - Root `tsconfig.json`: project references unchanged — `npm run typecheck` still covers
+    all three workspaces.
+  - Verify: `npm run build` produces the per-workspace `dist` folders with no stray test
+    output; `npm run typecheck` clean. (The `deploy/` assembly step in 3b-5 consumes these.)
+  - Done: added `"sourceMap": true` + explicit `"declaration": false` to
+    `server/tsconfig.json`. `"include": ["src"]` was already correct across all three
+    workspaces; client stays bundler-mode `noEmit`. `npm run typecheck` clean.
+
+- [x] **3b-5** Root `package.json`: Heroku build hooks, `deploy/` assembly, Node engine
+  - Add `"heroku-postbuild": "npm run build"` so Heroku produces the slug artifacts after
+    `npm ci`.
+  - Extend `"build"` (or add a `"build:deploy"` step chained after it) to assemble the
+    top-level **`deploy/`** folder: copy `server/dist` → `deploy/server`,
+    `client/dist` → `deploy/client`, `shared/dist` → `deploy/shared`, and write a
+    slimmed `deploy/package.json` (runtime deps only, `"type": "module"`,
+    `"start": "node server/index.js"`, `"engines"`). Follow with `npm ci --omit=dev
+    --prefix deploy` (or equivalent) so `deploy/node_modules` contains production deps only.
+    A small Node script under `../../scripts/build-release.js` is the recommended implementation.
+  - Change the root `"start"` to `"node deploy/server/index.js"` so Heroku and local
+    parity both boot from the same tree. No `Procfile` required.
+  - Add `"engines": { "node": ">=22" }` at the repo root (and mirror it in
+    `deploy/package.json`) to pin the Heroku Node stack.
+  - Add `deploy/` to `.gitignore`.
+  - Ensure the build toolchain (`typescript`, `vite`, `@vitejs/plugin-*`, `@types/*` needed
+    at build time) is reachable during `heroku-postbuild` — either move them into
+    `dependencies` of the workspace that needs them, or set the Heroku config var
+    `NPM_CONFIG_PRODUCTION=false` so dev deps are installed for the build. Pick one
+    approach and document it.
+  - Files: root `package.json`, `.gitignore`, `../../scripts/build-release.js`, workspace
+    `package.json` files as needed.
+  - Verify: `rm -rf node_modules */node_modules */dist deploy && npm ci
+    && npm run heroku-postbuild && npm start` boots the app from `deploy/` and serves both
+    the SPA and `/ws`.
+  - Done: added `../../scripts/build-release.js` (copies `{server,client,shared}/dist` → `deploy/`,
+    writes a slimmed `deploy/package.json` with `@gts/shared` as `file:./shared`, then runs
+    `npm install --omit=dev` in `deploy/` so `deploy/node_modules` carries prod deps only).
+    Root `package.json` gained `build:deploy`, chained into `build`, plus `heroku-postbuild`,
+    `"engines": { "node": ">=24" }` (aligns with `server/package.json`'s existing pin), and
+    `"start": "node deploy/server/index.js"`. `.gitignore` and eslint `globalIgnores` both
+    exclude `deploy/`. Toolchain decision: Heroku runs `npm ci` (installs devDependencies)
+    before the postbuild hook because `NODE_ENV` isn't set to production during install by
+    default — the existing devDependencies layout is sufficient; documented as
+    `NPM_CONFIG_PRODUCTION=false` in the README if needed.
+  - Verified end-to-end: `npm run build` produces `deploy/{server,client,shared,node_modules,
+    package.json}` with an installed prod tree (98 packages). Lint + typecheck +
+    96/96 tests all clean.
+
+- [x] **3b-6** Env-var documentation + local parity script
+  - `README.md`: add a "Deploying to Heroku" section listing required config vars
+    (`DATABASE_URL`, `PORT`, `NODE_ENV=production`, optional `DATABASE_SSL=true`,
+    optional `CLIENT_DIST`) and the one-shot commands (`heroku create`,
+    `heroku addons:create heroku-postgresql:essential-0`, `git push heroku main`).
+  - Document the local-parity invocation:
+    `npm ci && npm run build && DATABASE_URL=… npm start`.
+  - Files: `README.md`, `CLAUDE.md` (update deployment note).
+  - Done: README gained "Production build" + "Deploying to Heroku" sections (config-vars
+    table, one-shot Heroku commands, local parity invocation). CLAUDE.md status bullet,
+    `npm start` doc, and Config-caveats bullet all now reference the `deploy/` layout.
+
+- [ ] **3b-7** Smoke check on Heroku
+  - Deploy to a review app or scratch Heroku app; verify: SPA loads at `/`, `POST /api/rooms`
+    returns an invite code, two browsers can join and play a full turn over `wss://…/ws`,
+    the game persists to Heroku Postgres, and no secret word appears in WS traffic to
+    non-drawers.
+  - Files: none (operational task); attach the app URL + a short verification note to the PR.
+
 
 <!--
 claude --resume a9d1876b-7e73-4f49-912e-2b4fa01545a6

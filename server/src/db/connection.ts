@@ -12,11 +12,9 @@ pg.types.setTypeParser(20, (val: string) => Number(val));
 const DEFAULT_URL = "postgresql://localhost:5432/gts";
 
 /**
- * Return the PostgreSQL connection URL. `DATABASE_URL` should contain only the
- * host, port, and database name — **no credentials**. The `pg` driver
- * automatically merges `PGUSER` and `PGPASSWORD` from the environment when
- * those fields are absent from the URL, keeping secrets out of the connection
- * string entirely.
+ * Return the PostgreSQL connection URL. `DATABASE_URL` may contain the secure credentials
+ * for the database within the connection string when running in production. However, local development typically
+ * uses environment variables for credentials.
  *
  * Examples:
  *   DATABASE_URL=postgresql://localhost:5432/gts        (dev)
@@ -29,8 +27,6 @@ export function connectionUrl(): string {
 
 /**
  * Open a PostgreSQL connection pool and wrap it in a typed Kysely instance.
- * Credentials (`PGUSER`, `PGPASSWORD`) are read from the environment by the
- * `pg` driver automatically — they must not be embedded in `url`.
  * Call `db.destroy()` to drain the pool when done.
  */
 export function createDb(url: string = connectionUrl()): Db {

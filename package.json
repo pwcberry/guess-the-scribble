@@ -1,7 +1,7 @@
 {
   "name": "guess-the-scribble",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "workspaces": [
     "shared",
@@ -14,16 +14,23 @@
     "dev:shared": "npm run dev -w @gts/shared",
     "dev:client": "npm run dev -w @gts/client",
     "dev:server": "npm run dev -w @gts/server",
-    "build": "npm run build -w @gts/shared && npm run build -w @gts/client && npm run build -w @gts/server",
+    "build": "npm run build:shared && npm run build:client && npm run build:server && npm run build:deploy",
     "build:client": "npm run build -w @gts/client",
     "build:server": "npm run build -w @gts/server",
+    "build:shared": "npm run build -w @gts/shared",
+    "build:deploy": "node scripts/build-release.js",
+    "heroku-postbuild": "npm run build",
     "preview": "npm run preview -w @gts/client",
     "typecheck": "npm run build -w @gts/shared && tsc --noEmit -p client/tsconfig.json && tsc --noEmit -p server/tsconfig.json",
     "lint": "eslint .",
-    "test": "vitest run",
+    "format": "eslint . --fix",
+    "test": "node scripts/test.js",
     "db:migrate": "npm run db:migrate -w @gts/server",
     "db:reset": "npm run db:reset -w @gts/server",
-    "start": "node server/dist/index.js"
+    "start": "node deploy/server/index.js"
+  },
+  "engines": {
+    "node": ">=24"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -38,5 +45,9 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true
   }
 }
