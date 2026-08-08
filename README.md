@@ -53,26 +53,26 @@ npm run db:reset   # drops all tables and re-migrates
 ## Production build (single deployable unit)
 
 The client, server, and shared protocol are bundled into one deployable Node app under
-a top-level `deploy/` folder. The server serves the API, the `/ws` WebSocket, and the
+a top-level `.release/` folder. The server serves the API, the `/ws` WebSocket, and the
 built client bundle — no separate frontend host.
 
 ```bash
-# Assemble deploy/ (shared → client → server → deploy/ + prod-only node_modules)
+# Assemble .release/ (shared → client → server → .release/ + prod-only node_modules)
 npm run build
 
 # Boot the assembled app (uses the same command Heroku runs)
 DATABASE_URL=postgresql://localhost:5432/gts npm start
-# ↳ node deploy/server/index.js
+# ↳ node .release/server/index.js
 ```
 
-`deploy/` layout: `deploy/server`, `deploy/client`, `deploy/shared`, `deploy/package.json`,
-`deploy/node_modules`. It is git-ignored and rebuilt from source every time.
+`.release/` layout: `.release/server`, `.release/client`, `.release/shared`, `.release/package.json`,
+`.release/node_modules`. It is git-ignored and rebuilt from source every time.
 
 ## Deploying to Heroku
 
 Single web dyno + Heroku Postgres add-on. The build hook `heroku-postbuild` runs
-`npm run build`, which produces `deploy/` and installs its production dependencies.
-Heroku's default `npm start` then boots `node deploy/server/index.js`.
+`npm run build`, which produces `.release/` and installs its production dependencies.
+Heroku's default `npm start` then boots `node .release/server/index.js`.
 
 ```bash
 heroku create <app-name>
@@ -91,5 +91,5 @@ Config vars used at runtime:
 | `PORT`          | Heroku                          | HTTP + WS listen port                          |
 | `NODE_ENV`      | `production`                    | Standard Node env flag                         |
 | `DATABASE_SSL`  | optional (`true`/`false`)       | Force TLS on the pg pool; auto for non-local   |
-| `CLIENT_DIST`   | optional                        | Override the SPA bundle path (defaults to `deploy/client`) |
+| `CLIENT_DIST`   | optional                        | Override the SPA bundle path (defaults to `.release/client`) |
 | `PGUSER` / `PGPASSWORD` | libpq env vars          | DB credentials (never in `DATABASE_URL`)       |

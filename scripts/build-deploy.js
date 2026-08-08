@@ -21,7 +21,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const deploy = resolve(root, "deploy");
+const releaseDirectory = resolve(root, ".release");
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
@@ -35,17 +35,17 @@ async function copyDist(from, to) {
 }
 
 async function main() {
-  await rm(deploy, { recursive: true, force: true });
-  await mkdir(deploy, { recursive: true });
+  await rm(releaseDirectory, { recursive: true, force: true });
+  await mkdir(releaseDirectory, { recursive: true });
 
-  await copyDist(resolve(root, "server/dist"), resolve(deploy, "server"));
-  await copyDist(resolve(root, "client/dist"), resolve(deploy, "client"));
+  await copyDist(resolve(root, "server/dist"), resolve(releaseDirectory, "server"));
+  await copyDist(resolve(root, "client/dist"), resolve(releaseDirectory, "client"));
 
-  await mkdir(resolve(deploy, "shared"), { recursive: true });
-  await copyDist(resolve(root, "shared/dist"), resolve(deploy, "shared/dist"));
+  await mkdir(resolve(releaseDirectory, "shared"), { recursive: true });
+  await copyDist(resolve(root, "shared/dist"), resolve(releaseDirectory, "shared/dist"));
   await cp(
     resolve(root, "shared/package.json"),
-    resolve(deploy, "shared/package.json"),
+    resolve(releaseDirectory, "shared/package.json"),
   );
 
   const rootPkg = await readJson(resolve(root, "package.json"));
@@ -67,14 +67,14 @@ async function main() {
     engines: rootPkg.engines ?? { node: ">=22" },
   };
   await writeFile(
-    resolve(deploy, "package.json"),
+    resolve(releaseDirectory, "package.json"),
     `${JSON.stringify(deployPkg, null, 2)}\n`,
   );
 
   const result = spawnSync(
     "npm",
     ["install", "--omit=dev", "--no-audit", "--no-fund"],
-    { cwd: deploy, stdio: "inherit", shell: process.platform === "win32" },
+    { cwd: releaseDirectory, stdio: "inherit", shell: process.platform === "win32" },
   );
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
