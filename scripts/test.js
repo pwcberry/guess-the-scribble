@@ -1,10 +1,14 @@
-// Cross-platform test runner: brings up the PostgreSQL container, runs the
-// vitest suite against it, and always tears the container down — no matter how
-// the tests exit. Works on Windows / macOS / Linux via Node's `spawn`.
-//
-// Requires Docker (with the `docker compose` v2 CLI) on PATH. The compose file
-// has a Postgres healthcheck; `docker compose up -d --wait` blocks until it
-// reports healthy so vitest never sees a connection-refused start-up race.
+/**
+ * @file Cross-platform test runner: brings up the PostgreSQL container, runs
+ * the vitest suite against it, and always tears the container down — no
+ * matter how the tests exit. Works on Windows / macOS / Linux via Node's
+ * `spawn`.
+ *
+ * Requires Docker (with the `docker compose` v2 CLI) on PATH. The compose
+ * file has a Postgres healthcheck; `docker compose up -d --wait` blocks
+ * until it reports healthy so vitest never sees a connection-refused
+ * start-up race.
+ */
 
 import { spawn } from "node:child_process";
 import process from "node:process";
@@ -12,6 +16,14 @@ import { existsSync } from "node:fs";
 
 const isWindows = process.platform === "win32";
 
+/**
+ * Spawns a command and resolves with its exit code, inheriting stdio.
+ * @param {string} command - The executable to run.
+ * @param {string[]} args - Arguments to pass to the command.
+ * @param {object} [options] - Run options.
+ * @param {boolean} [options.allowFailure] - Resolve instead of rejecting on a non-zero exit code.
+ * @returns {Promise<number>} The process's exit code.
+ */
 function run(command, args, { allowFailure = false } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -34,6 +46,12 @@ function run(command, args, { allowFailure = false } = {}) {
   });
 }
 
+/**
+ * Ensures `.env` and the built shared workspace exist, brings up the
+ * PostgreSQL container, runs the vitest suite, and tears the container down
+ * regardless of outcome before exiting with the suite's exit code.
+ * @returns {Promise<void>}
+ */
 async function main() {
   let exitCode;
   try {
