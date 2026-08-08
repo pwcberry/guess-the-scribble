@@ -8,6 +8,7 @@
 
 import { spawn } from "node:child_process";
 import process from "node:process";
+import { existsSync } from "node:fs";
 
 const isWindows = process.platform === "win32";
 
@@ -36,6 +37,14 @@ function run(command, args, { allowFailure = false } = {}) {
 async function main() {
   let exitCode;
   try {
+    if (!existsSync(".env")) {
+      throw new Error(".env file not found. Please create one based on .env.example");
+    }
+
+    if (!existsSync("/shared/lib")) {
+      await run("npm", ["run", "build:shared"]);
+    }
+
     // `--wait` blocks until the healthcheck passes.
     await run("docker", ["compose", "up", "-d", "--wait"]);
     exitCode = await run("npx", ["vitest", "run"], { allowFailure: true });
