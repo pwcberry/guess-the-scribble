@@ -27,8 +27,6 @@ export function connectionUrl(): string {
 
 /**
  * Open a PostgreSQL connection pool and wrap it in a typed Kysely instance.
- * Credentials (`PGUSER`, `PGPASSWORD`) are read from the environment by the
- * `pg` driver automatically — they must not be embedded in `url`.
  * Call `db.destroy()` to drain the pool when done.
  */
 export function createDb(url: string = connectionUrl()): Db {

@@ -62,7 +62,7 @@ async function main() {
   await copyDist(resolve(root, "client/dist"), resolve(releaseDirectory, "client"));
 
   await mkdir(resolve(releaseDirectory, "shared"), { recursive: true });
-  await copyDist(resolve(root, "shared/dist"), resolve(releaseDirectory, "shared/dist"));
+  await copyDist(resolve(root, "shared/lib"), resolve(releaseDirectory, "shared/lib"));
   await cp(
     resolve(root, "shared/package.json"),
     resolve(releaseDirectory, "shared/package.json"),

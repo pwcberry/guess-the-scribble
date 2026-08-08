@@ -18,7 +18,7 @@
     "build:client": "npm run build -w @gts/client",
     "build:server": "npm run build -w @gts/server",
     "build:shared": "npm run build -w @gts/shared",
-    "build:deploy": "node scripts/build-deploy.js",
+    "build:deploy": "node scripts/build-release.js",
     "heroku-postbuild": "npm run build",
     "preview": "npm run preview -w @gts/client",
     "typecheck": "npm run build -w @gts/shared && tsc --noEmit -p client/tsconfig.json && tsc --noEmit -p server/tsconfig.json",

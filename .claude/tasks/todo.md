@@ -227,7 +227,7 @@ Each task ends with `npm run lint` + `npm test` + `npm run typecheck` clean.
     slimmed `deploy/package.json` (runtime deps only, `"type": "module"`,
     `"start": "node server/index.js"`, `"engines"`). Follow with `npm ci --omit=dev
     --prefix deploy` (or equivalent) so `deploy/node_modules` contains production deps only.
-    A small Node script under `../../scripts/build-deploy.js` is the recommended implementation.
+    A small Node script under `../../scripts/build-release.js` is the recommended implementation.
   - Change the root `"start"` to `"node deploy/server/index.js"` so Heroku and local
     parity both boot from the same tree. No `Procfile` required.
   - Add `"engines": { "node": ">=22" }` at the repo root (and mirror it in
@@ -238,12 +238,12 @@ Each task ends with `npm run lint` + `npm test` + `npm run typecheck` clean.
     `dependencies` of the workspace that needs them, or set the Heroku config var
     `NPM_CONFIG_PRODUCTION=false` so dev deps are installed for the build. Pick one
     approach and document it.
-  - Files: root `package.json`, `.gitignore`, `../../scripts/build-deploy.js`, workspace
+  - Files: root `package.json`, `.gitignore`, `../../scripts/build-release.js`, workspace
     `package.json` files as needed.
   - Verify: `rm -rf node_modules */node_modules */dist deploy && npm ci
     && npm run heroku-postbuild && npm start` boots the app from `deploy/` and serves both
     the SPA and `/ws`.
-  - Done: added `../../scripts/build-deploy.js` (copies `{server,client,shared}/dist` → `deploy/`,
+  - Done: added `../../scripts/build-release.js` (copies `{server,client,shared}/dist` → `deploy/`,
     writes a slimmed `deploy/package.json` with `@gts/shared` as `file:./shared`, then runs
     `npm install --omit=dev` in `deploy/` so `deploy/node_modules` carries prod deps only).
     Root `package.json` gained `build:deploy`, chained into `build`, plus `heroku-postbuild`,
