@@ -82,7 +82,7 @@ export class GtsChat extends LitElement {
           .placeholder=${placeholder}
           @input=${this.onInput}
         />
-        <button type="submit" ?disabled=${this.draft.trim() === ""}>Send</button>
+        <button class="primary" type="submit" ?disabled=${this.draft.trim() === ""}>Send</button>
       </form>
     `;
   }
@@ -200,20 +200,6 @@ export class GtsChat extends LitElement {
       border-radius: 8px;
       background: transparent;
       color: inherit;
-    }
-    .entry button {
-      font: inherit;
-      font-weight: 600;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #6d28d9;
-      color: #fff;
-      cursor: pointer;
-    }
-    .entry button:disabled {
-      opacity: 0.5;
-      cursor: default;
     }
     .note {
       margin: 0;
