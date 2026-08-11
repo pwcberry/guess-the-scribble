@@ -34,7 +34,7 @@ export class GtsJoin extends LitElement {
     const error = this.localError ?? this.errorMessage;
     return html`
       <section>
-        <h1>Guess the Scribble</h1>
+        <h1 class="heading">Guess the Scribble!</h1>
         <p class="tagline">
           ${joining
             ? html`Joining room <strong>${this.roomCode}</strong>`

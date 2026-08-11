@@ -24,6 +24,20 @@ export const elementStyles = css`
     line-height: 1;
   }
 
+  h1.heading {
+    color: var(--color-burgundy);
+  }
+
+  @supports (background-clip: text) {
+    h1.heading {
+      background-image: linear-gradient(var(--color-burgundy), var(--color-orange), var(--color-green));
+      background-clip: text;
+      color: transparent;
+      font-size: 4rem;
+      text-shadow: 2px 3px 0 rgba(0,0,0,0.2);
+    }
+  }
+
   h2 {
     font-family: "Merriweather", serif;
     font-optical-sizing: auto;
