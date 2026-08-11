@@ -70,6 +70,8 @@ export class GtsScoreboard extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 4px;
+      max-height: 280px;
+      overflow-y: auto;
     }
     li {
       display: flex;

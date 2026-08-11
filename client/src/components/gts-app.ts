@@ -161,6 +161,7 @@ export class GtsApp extends LitElement {
     :host {
       display: block;
       width: 100%;
+      min-width: 1024px;
     }
     .banner {
       padding: 8px 16px;
@@ -170,12 +171,13 @@ export class GtsApp extends LitElement {
       font: 600 14px/1.4 system-ui, sans-serif;
     }
     main {
-      padding: 24px 16px;
+      padding: 12px 16px;
     }
     .game {
       display: flex;
       flex-direction: column;
       gap: 20px;
+      min-width: 992px;
       max-width: 1100px;
       margin: 0 auto;
     }
@@ -199,6 +201,7 @@ export class GtsApp extends LitElement {
       }
       .side {
         flex: 0 0 320px;
+        min-width: 260px;
       }
     }
     .placeholder {
