@@ -2,6 +2,7 @@ import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { ChatEntry, GameState } from "../state/store.ts";
 import { chatInputState } from "./chat-helpers.ts";
+import { elementStyles } from "./element-styles.ts";
 
 /** Emitted when the player submits a guess (or, off-round, a chat line). */
 export interface GuessRequest {
@@ -114,7 +115,7 @@ export class GtsChat extends LitElement {
     this.draft = "";
   }
 
-  static styles = css`
+  static styles = [elementStyles, css`
     :host {
       display: block;
       width: 100%;
@@ -194,12 +195,6 @@ export class GtsChat extends LitElement {
     .entry input {
       flex: 1;
       min-width: 0;
-      font: inherit;
-      padding: 10px 12px;
-      border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-      border-radius: 8px;
-      background: transparent;
-      color: inherit;
     }
     .note {
       margin: 0;
@@ -210,7 +205,7 @@ export class GtsChat extends LitElement {
       border-radius: 8px;
       background: color-mix(in srgb, currentColor 6%, transparent);
     }
-  `;
+  `];
 }
 
 declare global {

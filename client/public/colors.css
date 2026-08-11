@@ -2,7 +2,8 @@
 :root {
   --color-orange: #FC5400;
   --color-charcoal: #2a2a2a;
-  --color-white: #ffffff;
+  --color-white: #fff;
+  --color-black: #000;
   --color-sandstone: #eee9dd;
   --color-deep-sandstone: #d0ccbf;
   --color-sandstone-50: color-mix(in srgb, var(--color-sandstone) 50%, var(--color-white) 50%);
@@ -22,6 +23,7 @@
   --color-lilac: #9d87d2;
   --color-green: #22c55e;
   --color-red: #ef4444;
+  --color-yellow-dark: color-mix(in srgb, var(--color-yellow) 80%, var(--color-black) 20%);
 }
 
 /* Components: General */
@@ -39,4 +41,11 @@
   --color-button-secondary-background: var(--color-white);
   --color-button-secondary-text: var(--color-sandstone);
   --color-button-secondary-background-hover: var(--color-sandstone-30);
+}
+
+/* Indicators */
+:root {
+  --color-error: var(--color-red);
+  --color-warning: var(--color-yellow-dark);
+  --color-success: var(--color-green);
 }

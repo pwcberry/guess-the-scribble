@@ -2,6 +2,7 @@ import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { GameState } from "../state/store.ts";
 import { canStartGame, connectedCount, inviteLink, isHost, MIN_PLAYERS } from "./lobby-helpers.ts";
+import { elementStyles } from "./element-styles.ts";
 
 /**
  * Pre-game lobby. Shows the invite code and a copyable share link, the roster of
@@ -57,7 +58,7 @@ export class GtsLobby extends LitElement {
 
         ${host
           ? html`
-              <button type="button" class="start" ?disabled=${!canStart} @click=${this._start}>
+              <button type="button" class="primary start" ?disabled=${!canStart} @click=${this._start}>
                 Start game
               </button>
               ${canStart
@@ -90,7 +91,7 @@ export class GtsLobby extends LitElement {
     this.dispatchEvent(new CustomEvent("gts-start-game", { bubbles: true, composed: true }));
   }
 
-  static styles = css`
+  static styles = [elementStyles, css`
     :host {
       display: block;
       width: 100%;
@@ -98,7 +99,6 @@ export class GtsLobby extends LitElement {
       margin: 0 auto;
       padding: 24px;
       box-sizing: border-box;
-      font: 16px/1.5 system-ui, sans-serif;
     }
     section {
       display: flex;
@@ -112,7 +112,7 @@ export class GtsLobby extends LitElement {
     }
     h1 {
       margin: 0;
-      font-size: 28px;
+      color: var(--color-brand);
     }
     .code {
       font: 700 22px/1 ui-monospace, monospace;
@@ -128,27 +128,9 @@ export class GtsLobby extends LitElement {
     .invite input {
       flex: 1;
       min-width: 0;
-      font: inherit;
-      padding: 10px 12px;
-      border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-      border-radius: 8px;
-      background: transparent;
-      color: inherit;
     }
     button {
-      font: inherit;
-      font-weight: 600;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #6d28d9;
-      color: #fff;
-      cursor: pointer;
       white-space: nowrap;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
     }
     .players {
       list-style: none;
@@ -178,8 +160,8 @@ export class GtsLobby extends LitElement {
       text-transform: uppercase;
       padding: 2px 6px;
       border-radius: 999px;
-      background: #6d28d9;
-      color: #fff;
+      background: var(--color-button-primary-background);
+      color: var(--color-button-primary-text);
     }
     .badge.dim {
       background: color-mix(in srgb, currentColor 30%, transparent);
@@ -207,7 +189,7 @@ export class GtsLobby extends LitElement {
       opacity: 0.7;
       font-size: 14px;
     }
-  `;
+  `];
 }
 
 declare global {

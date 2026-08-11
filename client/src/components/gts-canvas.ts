@@ -16,6 +16,7 @@ import {
   turnKey,
   type Point,
 } from "./canvas-helpers.ts";
+import { elementStyles } from "./element-styles.ts";
 
 /** Emitted when the drawer selects the word they will draw. */
 export interface ChooseWordRequest {
@@ -351,7 +352,7 @@ export class GtsCanvas extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [elementStyles, css`
     :host {
       display: flex;
       flex-direction: column;
@@ -359,7 +360,6 @@ export class GtsCanvas extends LitElement {
       width: 100%;
       max-width: 760px;
       margin: 0 auto;
-      font: 16px/1.5 system-ui, sans-serif;
     }
     .stage {
       position: relative;
@@ -397,7 +397,6 @@ export class GtsCanvas extends LitElement {
     }
     .overlay h2 {
       margin: 0;
-      font-size: 20px;
     }
     .choices {
       display: flex;
@@ -406,16 +405,17 @@ export class GtsCanvas extends LitElement {
       justify-content: center;
     }
     .choices button {
-      font: 600 18px/1 system-ui, sans-serif;
+      font-size: 18px;
+      font-weight: 600;
       padding: 14px 20px;
-      border: none;
+      background-color: var(--color-button-primary-background);
+      border-color: var(--color-button-primary-border);
+      color: var(--color-button-primary-text);
       border-radius: 10px;
-      background: #6d28d9;
-      color: #fff;
-      cursor: pointer;
     }
     .choices button:hover {
-      background: #7c3aed;
+      background-color: var(--color-button-primary-background-hover);
+      border-color: var(--color-button-primary-border-hover);
     }
     .caption {
       margin: 0;
@@ -480,13 +480,12 @@ export class GtsCanvas extends LitElement {
       margin-left: auto;
     }
     .actions button {
-      font: 600 14px/1 system-ui, sans-serif;
+      font-size: 14px;
       padding: 9px 14px;
       border-radius: 8px;
       border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
       background: transparent;
       color: inherit;
-      cursor: pointer;
     }
     .actions button:hover:not(:disabled) {
       background: color-mix(in srgb, currentColor 10%, transparent);
@@ -495,7 +494,7 @@ export class GtsCanvas extends LitElement {
       opacity: 0.45;
       cursor: default;
     }
-  `;
+  `];
 }
 
 declare global {
