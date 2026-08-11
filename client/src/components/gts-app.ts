@@ -165,8 +165,8 @@ export class GtsApp extends LitElement {
     .banner {
       padding: 8px 16px;
       text-align: center;
-      background: #f59e0b;
-      color: #1a1300;
+      background: var(--color-warning);
+      color: var(--color-charcoal);
       font: 600 14px/1.4 system-ui, sans-serif;
     }
     main {

@@ -160,28 +160,18 @@ export class GtsChat extends LitElement {
       opacity: 0.6;
     }
     .correct {
-      color: #16794c;
+      color: var(--color-success);
       font-weight: 600;
     }
     .correct .who::after {
       content: "";
     }
-    @media (prefers-color-scheme: dark) {
-      .correct {
-        color: #4cc38a;
-      }
-    }
     .correct::before {
       content: "✓ ";
     }
     .close {
-      color: #9a6700;
+      color: var(--color-warning);
       font-style: italic;
-    }
-    @media (prefers-color-scheme: dark) {
-      .close {
-        color: #f5c451;
-      }
     }
     .system {
       text-align: center;
