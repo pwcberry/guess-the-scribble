@@ -1,6 +1,6 @@
 # Guess The Scribble
 
-A skribbl.io clone.
+A skribbl.io clone. Created with help with AI.
 
 ## Prerequisites
 
