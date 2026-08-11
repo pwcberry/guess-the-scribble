@@ -147,10 +147,10 @@ export class GtsHud extends LitElement {
       font-size: 20px;
     }
     .clock.warn {
-      color: #9a6700;
+      color: var(--color-warning);
     }
     .clock.urgent {
-      color: #e5484d;
+      color: var(--color-error);
     }
     .word {
       display: flex;
@@ -185,14 +185,14 @@ export class GtsHud extends LitElement {
       display: block;
       height: 100%;
       border-radius: 999px;
-      background: #30a46c;
+      background: var(--color-success);
       transition: width 0.5s linear;
     }
     .fill.warn {
-      background: #ffc53d;
+      background: var(--color-warning);
     }
     .fill.urgent {
-      background: #e5484d;
+      background: var(--color-error);
     }
     .reveal {
       align-items: stretch;

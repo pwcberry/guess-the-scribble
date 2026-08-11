@@ -2,6 +2,7 @@ import { LitElement, css, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { GameStore, type GameState } from "../state/store.ts";
 import { parseRoomCode } from "./lobby-helpers.ts";
+import { elementStyles } from "./element-styles.ts";
 import "./gts-join.ts";
 import "./gts-lobby.ts";
 import "./gts-canvas.ts";
@@ -156,7 +157,7 @@ export class GtsApp extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [elementStyles, css`
     :host {
       display: block;
       width: 100%;
@@ -164,8 +165,8 @@ export class GtsApp extends LitElement {
     .banner {
       padding: 8px 16px;
       text-align: center;
-      background: #f59e0b;
-      color: #1a1300;
+      background: var(--color-warning);
+      color: var(--color-charcoal);
       font: 600 14px/1.4 system-ui, sans-serif;
     }
     main {
@@ -204,9 +205,8 @@ export class GtsApp extends LitElement {
       max-width: 420px;
       margin: 0 auto;
       text-align: center;
-      font: 16px/1.5 system-ui, sans-serif;
     }
-  `;
+  `];
 }
 
 declare global {

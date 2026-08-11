@@ -2,6 +2,7 @@ import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { ChatEntry, GameState } from "../state/store.ts";
 import { chatInputState } from "./chat-helpers.ts";
+import { elementStyles } from "./element-styles.ts";
 
 /** Emitted when the player submits a guess (or, off-round, a chat line). */
 export interface GuessRequest {
@@ -82,7 +83,7 @@ export class GtsChat extends LitElement {
           .placeholder=${placeholder}
           @input=${this.onInput}
         />
-        <button type="submit" ?disabled=${this.draft.trim() === ""}>Send</button>
+        <button class="primary" type="submit" ?disabled=${this.draft.trim() === ""}>Send</button>
       </form>
     `;
   }
@@ -114,7 +115,7 @@ export class GtsChat extends LitElement {
     this.draft = "";
   }
 
-  static styles = css`
+  static styles = [elementStyles, css`
     :host {
       display: block;
       width: 100%;
@@ -159,28 +160,18 @@ export class GtsChat extends LitElement {
       opacity: 0.6;
     }
     .correct {
-      color: #16794c;
+      color: var(--color-success);
       font-weight: 600;
     }
     .correct .who::after {
       content: "";
     }
-    @media (prefers-color-scheme: dark) {
-      .correct {
-        color: #4cc38a;
-      }
-    }
     .correct::before {
       content: "✓ ";
     }
     .close {
-      color: #9a6700;
+      color: var(--color-warning);
       font-style: italic;
-    }
-    @media (prefers-color-scheme: dark) {
-      .close {
-        color: #f5c451;
-      }
     }
     .system {
       text-align: center;
@@ -194,26 +185,6 @@ export class GtsChat extends LitElement {
     .entry input {
       flex: 1;
       min-width: 0;
-      font: inherit;
-      padding: 10px 12px;
-      border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-      border-radius: 8px;
-      background: transparent;
-      color: inherit;
-    }
-    .entry button {
-      font: inherit;
-      font-weight: 600;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #6d28d9;
-      color: #fff;
-      cursor: pointer;
-    }
-    .entry button:disabled {
-      opacity: 0.5;
-      cursor: default;
     }
     .note {
       margin: 0;
@@ -224,7 +195,7 @@ export class GtsChat extends LitElement {
       border-radius: 8px;
       background: color-mix(in srgb, currentColor 6%, transparent);
     }
-  `;
+  `];
 }
 
 declare global {

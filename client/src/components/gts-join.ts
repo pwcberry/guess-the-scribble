@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import type { RoomSettings } from "@gts/shared";
 import { createRoom } from "../net/api.ts";
 import { DEFAULT_SETTINGS } from "./settings-presets.ts";
+import { elementStyles } from "./element-styles.ts";
 
 /** Emitted when the player commits to joining a room with a nickname. */
 export interface JoinRequest {
@@ -33,7 +34,7 @@ export class GtsJoin extends LitElement {
     const error = this.localError ?? this.errorMessage;
     return html`
       <section>
-        <h1>Guess the Scribble</h1>
+        <h1 class="heading">Guess the Scribble!</h1>
         <p class="tagline">
           ${joining
             ? html`Joining room <strong>${this.roomCode}</strong>`
@@ -55,7 +56,7 @@ export class GtsJoin extends LitElement {
         ${joining ? null : this._renderSettings()}
         ${error ? html`<p class="error" role="alert">${error}</p>` : null}
 
-        <button type="button" ?disabled=${this.busy} @click=${this._submit}>
+        <button class="primary" type="button" ?disabled=${this.busy} @click=${this._submit}>
           ${this.busy ? "Creating…" : joining ? "Join game" : "Create room"}
         </button>
       </section>
@@ -140,15 +141,13 @@ export class GtsJoin extends LitElement {
     );
   }
 
-  static styles = css`
+  static styles = [elementStyles, css`
     :host {
       display: block;
       width: 100%;
       max-width: 420px;
       margin: 0 auto;
       padding: 24px;
-      box-sizing: border-box;
-      font: 16px/1.5 system-ui, sans-serif;
     }
     section {
       display: flex;
@@ -157,7 +156,6 @@ export class GtsJoin extends LitElement {
     }
     h1 {
       margin: 0;
-      font-size: 32px;
       text-align: center;
     }
     .tagline {
@@ -172,12 +170,8 @@ export class GtsJoin extends LitElement {
       font-weight: 600;
     }
     input {
-      font: inherit;
-      padding: 10px 12px;
-      border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-      border-radius: 8px;
-      background: transparent;
-      color: inherit;
+      width: 100%;
+      box-sizing: border-box;
     }
     fieldset {
       display: grid;
@@ -195,26 +189,12 @@ export class GtsJoin extends LitElement {
       font-size: 13px;
       font-weight: 500;
     }
-    button {
-      font: inherit;
-      font-weight: 600;
-      padding: 12px 16px;
-      border: none;
-      border-radius: 8px;
-      background: #6d28d9;
-      color: #fff;
-      cursor: pointer;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
     .error {
       margin: 0;
-      color: #dc2626;
+      color: var(--color-error);
       font-size: 14px;
     }
-  `;
+  `];
 }
 
 declare global {

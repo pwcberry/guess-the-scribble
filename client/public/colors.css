@@ -1,0 +1,51 @@
+/* Primary colors */
+:root {
+  --color-orange: #FC5400;
+  --color-charcoal: #2a2a2a;
+  --color-white: #fff;
+  --color-black: #000;
+  --color-sandstone: #eee9dd;
+  --color-deep-sandstone: #d0ccbf;
+  --color-sandstone-50: color-mix(in srgb, var(--color-sandstone) 50%, var(--color-white) 50%);
+  --color-sandstone-30: color-mix(in srgb, var(--color-sandstone) 30%, var(--color-white) 70%);
+  --color-charcoal-50: #636466;
+  --color-charcoal-40: color-mix(in srgb, var(--color-charcoal) 40%, var(--color-white) 60%);
+  --color-charcoal-20: color-mix(in srgb, var(--color-charcoal) 20%, var(--color-white) 80%);
+  --color-charcoal-10: color-mix(in srgb, var(--color-charcoal) 10%, var(--color-white) 90%);
+}
+
+/* Secondary colors */
+:root {
+  --color-teal: #176077;
+  --color-aqua: #52c9cc;
+  --color-yellow: #ffd10a;
+  --color-burgundy: #a61d13;
+  --color-lilac: #9d87d2;
+  --color-green: #22c55e;
+  --color-red: #ef4444;
+  --color-yellow-dark: color-mix(in srgb, var(--color-yellow) 80%, var(--color-black) 20%);
+}
+
+/* Components: General */
+:root {
+  --color-brand: var(--color-orange);
+  --color-background: var(--color-white);
+  --color-text: var(--color-charcoal);
+  --color-text-secondary: var(--color-sandstone);
+  --color-button-primary-border: var(--color-brand);
+  --color-button-primary-background: var(--color-brand);
+  --color-button-primary-text: var(--color-white);
+  --color-button-primary-background-hover: color-mix(in srgb, var(--color-brand) 80%, var(--color-white) 20%);
+  --color-button-primary-border-hover: color-mix(in srgb, var(--color-brand) 80%, var(--color-white) 20%);
+  --color-button-secondary-border: var(--color-sandstone-50);
+  --color-button-secondary-background: var(--color-white);
+  --color-button-secondary-text: var(--color-sandstone);
+  --color-button-secondary-background-hover: var(--color-sandstone-30);
+}
+
+/* Indicators */
+:root {
+  --color-error: var(--color-red);
+  --color-warning: var(--color-yellow-dark);
+  --color-success: var(--color-green);
+}

@@ -2,6 +2,7 @@ import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { Score } from "@gts/shared";
 import { rankByScore } from "./scoreboard-helpers.ts";
+import { elementStyles } from "./element-styles.ts";
 
 /**
  * End-of-game screen: final standings with the winner called out, and a way to
@@ -45,13 +46,12 @@ export class GtsGameOver extends LitElement {
     this.dispatchEvent(new CustomEvent("gts-new-game", { bubbles: true, composed: true }));
   }
 
-  static styles = css`
+  static styles = [elementStyles, css`
     :host {
       display: block;
       width: 100%;
       max-width: 420px;
       margin: 0 auto;
-      font: 16px/1.5 system-ui, sans-serif;
     }
     section {
       display: flex;
@@ -68,7 +68,6 @@ export class GtsGameOver extends LitElement {
     }
     h1 {
       margin: 0;
-      font-size: 28px;
     }
     .crown {
       font-size: 24px;
@@ -91,7 +90,7 @@ export class GtsGameOver extends LitElement {
       background: color-mix(in srgb, currentColor 8%, transparent);
     }
     li[aria-current="true"] {
-      background: color-mix(in srgb, #6d28d9 22%, transparent);
+      background: color-mix(in srgb, var(--color-button-primary-background) 22%, transparent);
     }
     .rank {
       flex: 0 0 1.5em;
@@ -117,19 +116,8 @@ export class GtsGameOver extends LitElement {
     }
     button {
       align-self: center;
-      font: inherit;
-      font-weight: 600;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      background: #6d28d9;
-      color: #fff;
-      cursor: pointer;
     }
-    button:hover {
-      background: #7c3aed;
-    }
-  `;
+  `];
 }
 
 declare global {

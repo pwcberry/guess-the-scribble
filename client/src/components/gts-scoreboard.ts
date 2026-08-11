@@ -80,7 +80,7 @@ export class GtsScoreboard extends LitElement {
       background: color-mix(in srgb, currentColor 6%, transparent);
     }
     li[aria-current="true"] {
-      background: color-mix(in srgb, #6d28d9 22%, transparent);
+      background: color-mix(in srgb, var(--color-brand) 22%, transparent);
     }
     li.offline {
       opacity: 0.5;
@@ -110,7 +110,7 @@ export class GtsScoreboard extends LitElement {
       font-size: 13px;
     }
     .badge.ok {
-      color: #16794c;
+      color: var(--color-success);
       font-weight: 700;
     }
     .score {
