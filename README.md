@@ -90,6 +90,3 @@ Config vars used at runtime:
 | `DATABASE_URL`          | Heroku Postgres add-on    | PostgreSQL connection string                                 |
 | `PORT`                  | Heroku                    | HTTP + WS listen port                                        |
 | `NODE_ENV`              | `production`              | Standard Node env flag                                       |
-| `DATABASE_SSL`          | optional (`true`/`false`) | Force TLS on the pg pool; auto for non-local                 |
-| `CLIENT_DIST`           | optional                  | Override the SPA bundle path (defaults to `.release/client`) |
-| `PGUSER` / `PGPASSWORD` | libpq env vars            | DB credentials (never in `DATABASE_URL`)                     |
