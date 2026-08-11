@@ -129,6 +129,8 @@ export class GtsHud extends LitElement {
       padding: 14px 16px;
       border-radius: 12px;
       background: color-mix(in srgb, currentColor 6%, transparent);
+      max-height: 160px;
+      overflow-y: auto;
     }
     .top {
       display: flex;

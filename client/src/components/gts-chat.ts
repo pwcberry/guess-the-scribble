@@ -119,6 +119,7 @@ export class GtsChat extends LitElement {
     :host {
       display: block;
       width: 100%;
+      min-height: 200px;
       font: 15px/1.5 system-ui, sans-serif;
     }
     section {

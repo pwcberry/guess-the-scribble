@@ -358,6 +358,7 @@ export class GtsCanvas extends LitElement {
       flex-direction: column;
       gap: 12px;
       width: 100%;
+      min-width: 480px;
       max-width: 760px;
       margin: 0 auto;
     }
