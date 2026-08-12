@@ -55,7 +55,7 @@ function run(command, args, { allowFailure = false } = {}) {
 async function main() {
   let exitCode;
   try {
-    if (!existsSync(".env")) {
+    if (!(process.env.NODE_ENV === "test" || existsSync(".env"))) {
       throw new Error(".env file not found. Please create one based on .env.example");
     }
 

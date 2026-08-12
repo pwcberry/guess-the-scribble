@@ -29,5 +29,6 @@ jobs:
 
       - name: Run tests
         env:
+          NODE_ENV: test
           PGPASSWORD: ${{ secrets.DATABASE_PGPASSWORD }}
         run: npm test
