@@ -30,4 +30,6 @@ jobs:
       - name: Run tests
         env:
           NODE_ENV: test
+          PGUSER: scribbler
+          PGPASSWORD: password
         run: npm test
