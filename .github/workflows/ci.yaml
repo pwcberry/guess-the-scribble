@@ -5,6 +5,7 @@ on:
       - main
       - dev
   pull_request:
+    types: [synchronize]
     branches:
       - main
       - dev
