@@ -27,7 +27,7 @@
     "test": "node scripts/test.js",
     "db:migrate": "npm run db:migrate -w @gts/server",
     "db:reset": "npm run db:reset -w @gts/server",
-    "start": "node deploy/server/index.js"
+    "start": "node .release/server/index.js"
   },
   "engines": {
     "node": ">=24"

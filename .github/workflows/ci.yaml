@@ -1,0 +1,36 @@
+name: Project CI
+on:
+  push:
+    branches-ignore:
+      - main
+      - dev
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+      - dev
+jobs:
+  lint-and-test:
+    name: 'Lint and Test'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        env:
+          NODE_ENV: test
+          PGUSER: scribbler
+          PGPASSWORD: password
+        run: npm test
