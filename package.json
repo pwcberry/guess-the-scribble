@@ -8,7 +8,7 @@
     "client"
   ],
   "scripts": {
-    "dev": "concurrently -n client,server -c blue,green \"npm:dev:client\" \"npm:dev:server\"",
+    "dev": "concurrently -n database,client,server -c magenta,blue,green \"npm:db:start\" \"npm:dev:client\" \"npm:dev:server\"",
     "dev:client": "npm run dev -w @gts/client",
     "dev:server": "npm run dev -w @gts/server",
     "build": "npm run build:client && npm run build:server && npm run build:deploy",
@@ -21,6 +21,7 @@
     "lint": "eslint .",
     "format": "eslint . --fix",
     "test": "node scripts/test.js",
+    "db:start": "docker compose up -d",
     "db:migrate": "npm run db:migrate -w @gts/server",
     "db:reset": "npm run db:reset -w @gts/server",
     "start": "node .release/server/index.js"
