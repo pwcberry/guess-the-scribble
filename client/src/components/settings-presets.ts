@@ -7,6 +7,6 @@ import type { RoomSettings } from "@gts/shared";
  */
 export const DEFAULT_SETTINGS: RoomSettings = {
   rounds: 3,
-  drawTimeSec: 80,
+  drawTimeSec: 60,
   maxPlayers: 8,
 };
