@@ -1,7 +1,7 @@
 {
   "name": "@gts/client",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@gts/shared": "*",
+    "@gts/shared": "1.0.0",
     "lit": "^3.3.3"
   },
   "devDependencies": {
