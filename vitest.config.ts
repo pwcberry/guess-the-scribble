@@ -7,7 +7,7 @@ const env = loadEnv("test", process.cwd(), "");
 
 export default defineConfig({
   test: {
-    include: ["{shared,server,client}/test/**/*.test.ts"],
+    include: ["{server,client}/test/**/*.test.ts"],
     environment: "node",
     // DB tests all share one PostgreSQL database; run files sequentially so
     // beforeEach truncations don't race between workers.

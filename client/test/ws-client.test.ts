@@ -1,4 +1,4 @@
-import type { ClientMessage, ServerMessage } from "@gts/shared";
+import type { ClientMessage, ServerMessage } from "../src/protocol.ts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GameClient, type Socket, type SessionStorage } from "../src/net/ws-client.ts";
 

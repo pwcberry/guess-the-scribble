@@ -1,6 +1,6 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { TurnPublic } from "@gts/shared";
+import type { TurnPublic } from "../protocol.ts";
 import type { GameState, TurnOutcome } from "../state/store.ts";
 import { drawerNickname, isLocalDrawer } from "./canvas-helpers.ts";
 import { remainingSeconds, timerFraction } from "./hud-helpers.ts";

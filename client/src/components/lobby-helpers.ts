@@ -1,4 +1,4 @@
-import type { PlayerView } from "@gts/shared";
+import type { PlayerView } from "../protocol.ts";
 import type { GameState } from "../state/store.ts";
 
 /** Minimum players needed before the host can start a game. */

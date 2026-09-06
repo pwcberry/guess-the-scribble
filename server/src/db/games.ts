@@ -1,4 +1,4 @@
-import type { Stroke } from "@gts/shared";
+import type { Stroke } from "../protocol.js";
 import type { PersistedResult, PlayerSnapshot } from "../game/events.js";
 import type { Db } from "./connection.js";
 

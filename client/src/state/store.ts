@@ -6,7 +6,7 @@ import type {
   TurnResult,
   Score,
   ServerMessage,
-} from "@gts/shared";
+} from "../protocol.ts";
 import { GameClient, type ConnectionStatus } from "../net/ws-client.ts";
 
 /** A single line in the chat/guess log, with a stable id for list rendering. */

@@ -1,4 +1,4 @@
-import type { PlayerView, ServerMessage } from "@gts/shared";
+import type { PlayerView, ServerMessage } from "../protocol.js";
 import type { Connection } from "./connection.js";
 
 /**

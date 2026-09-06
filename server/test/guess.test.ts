@@ -1,4 +1,4 @@
-import type { Score } from "@gts/shared";
+import type { Score } from "../src/protocol.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import { RoomRegistry } from "../src/game/registry.js";
 import type { Room } from "../src/game/room.js";

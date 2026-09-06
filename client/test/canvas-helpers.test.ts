@@ -1,4 +1,4 @@
-import type { TurnPublic } from "@gts/shared";
+import type { TurnPublic } from "../src/protocol.ts";
 import { describe, expect, it } from "vitest";
 import { initialState, type GameState } from "../src/state/store.ts";
 import {

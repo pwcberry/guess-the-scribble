@@ -1,4 +1,4 @@
-import type { ClientMessage } from "@gts/shared";
+import type { ClientMessage } from "../protocol.js";
 import { z } from "zod";
 
 // Bounds to keep a single frame cheap to handle and hard to abuse.
@@ -15,7 +15,7 @@ const strokeSchema = z.object({
 
 /**
  * Runtime validation for every inbound client message — the trust boundary. The
- * shape mirrors `ClientMessage` in @gts/shared (the frozen wire protocol); if one
+ * shape mirrors `ClientMessage` in `./protocol.js` (the frozen wire protocol); if one
  * changes, the other must too.
  */
 export const clientMessageSchema = z.discriminatedUnion("type", [

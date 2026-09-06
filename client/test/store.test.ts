@@ -1,4 +1,4 @@
-import type { PlayerView, RoomView, ServerMessage } from "@gts/shared";
+import type { PlayerView, RoomView, ServerMessage } from "../src/protocol.ts";
 import { describe, expect, it } from "vitest";
 import { initialState, reduce, type GameState } from "../src/state/store.ts";
 

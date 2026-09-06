@@ -11,27 +11,27 @@ Status (see `.claude/tasks/todo.md` for the live plan):
 - **Server game engine — done (Phases 0–1).** Rooms/players, invite codes, WS join + reconnection, turn lifecycle (drawer rotation, word choices, timers), server-side guess matching + time-decay scoring, PostgreSQL persistence of games/turns/results/drawings, and a **frozen** WS protocol with zod validation at the trust boundary. A **turn** is one drawer's period; a **round** is a full rotation (one turn per present player); a game runs `settings.rounds` rounds and ends after the last turn of the last round.
 - **DB refactor (Phase 1g) — pending.** The server DB layer currently uses SQLite (`better-sqlite3`). Phase 1g migrates it to PostgreSQL (`pg` + Kysely's `PostgresDialect`, `DATABASE_URL` env var). See `.claude/tasks/todo.md` for the step-by-step plan.
 - **Client — greenfield (Phase 2, in progress).** `client/src/my-element.ts` is still the generated Vite + Lit demo. The real WS client, lobby/join, drawing canvas, chat/guess, and turn HUD/scoreboard all still need building.
-- **Not started (Phase 3):** Playwright e2e, Heroku deployment (single-dyno; client + server + shared assembled into a top-level `deploy/` folder that `npm start` boots as `node deploy/server/index.js`).
+- **Not started (Phase 3):** Playwright e2e, Heroku deployment (single-dyno; client + server assembled into a top-level `deploy/` folder that `npm start` boots as `node deploy/server/index.js`).
 
 ## Repository layout
 
-npm **workspaces** (root `package.json`), three packages plus a root `tsconfig.json` that project-references all three:
+npm **workspaces** (root `package.json`), two packages plus a root `tsconfig.json` that project-references both:
 
-- **`shared/` (`@gts/shared`)** — the wire protocol (`shared/src/protocol.ts`), the single source of truth for everything exchanged over the WebSocket. **Emits** `.js` + `.d.ts` to `shared/dist`; both other packages import it as `@gts/shared`. It must be **built before** the others (the `predev` script and `build` order handle this).
 - **`server/` (`@gts/server`)** — Fastify app, game engine (`server/src/game`), DB layer (`server/src/db`), WS handlers (`server/src/ws`), REST routes (`server/src/routes`). `nodenext`, **emits** to `server/dist`.
 - **`client/` (`@gts/client`)** — Lit + Vite SPA, bundler-mode, `noEmit`. Vite builds it to `client/dist`.
+
+There is no shared workspace. The wire protocol (`ClientMessage`, `ServerMessage`, view types, `WS_PATH`) lives as a **duplicated plain source file** — `server/src/protocol.ts` and `client/src/protocol.ts` — one copy per workspace, each imported locally (no package, no build step). The two copies must be kept byte-for-byte in sync by hand whenever the protocol changes; see "Shared protocol" below.
 
 ## Commands
 
 Run from the repo root (npm dispatches to the right workspace):
 
 ```bash
-npm run dev          # shared(watch) + client(Vite) + server(tsx --watch) via concurrently (3 processes)
+npm run dev          # client(Vite) + server(tsx --watch) via concurrently (2 processes)
 npm run dev:client   # Vite dev server only
-npm run dev:server   # server only (tsx --watch); needs @gts/shared already built
-npm run dev:shared   # tsc --watch on the shared protocol only
-npm run build        # shared → client → client-empties-dist → server (order matters, see below)
-npm run typecheck    # build shared, then tsc --noEmit on client + server
+npm run dev:server   # server only (tsx --watch)
+npm run build        # client → server → build:deploy (assembles .release/)
+npm run typecheck    # tsc --noEmit on client + server
 npm run lint         # eslint .
 npm test             # vitest run (non-interactive)
 npm run db:migrate   # apply migrations to the PostgreSQL db (server workspace; needs DATABASE_URL)
@@ -41,8 +41,6 @@ npm run preview      # Vite preview of the built client
 ```
 
 Single test file: `npx vitest run server/test/foo.test.ts`. Single package build: `npm run build -w @gts/server`.
-
-**Build order matters:** `@gts/shared` must build first (server + client import its emitted `dist`). The `build` script sequences `shared → client → server`; Vite's `client` build empties `client/dist`, and the server build is independent of it, so the ordering is really about shared-first.
 
 ## Before every commit
 
@@ -66,27 +64,28 @@ Fix any failures before committing rather than committing around them. Do not co
 - **WS handlers (`server/src/ws/handlers.ts`).** Each socket must send `join` first; on success it's bound to a room + session and further messages dispatch to `room.handleMessage(sessionId, msg)`. Inbound messages are validated by the **zod** schema in `ws/schema.ts` (`parseClientMessage`) at the trust boundary — malformed/invalid are rejected with an `error` message.
 - **Persistence (`server/src/db`).** PostgreSQL via **`pg`** + **`kysely`** (typed query builder, `PostgresDialect`). Versioned inline migrations, word seed. `createGameEventSink` chains ordered async writes off engine events and exposes `flush()` for tests/shutdown. Reads `DATABASE_URL` (default `postgresql://localhost:5432/gts`; set to a dedicated test database for the test suite). Server code uses `nodenext` ESM — local imports carry `.js` specifiers that point at `.ts` sources; don't import client (bundler-mode) `.ts` files here.
 
-## Shared protocol (`@gts/shared`)
+## Shared protocol (duplicated `protocol.ts`)
 
-- `shared/src/protocol.ts` is the **single source of truth** for the WS protocol: `ClientMessage`, `ServerMessage`, and the view types (`RoomView`, `PlayerView`, `TurnPublic`, …). Both client and server import it.
+- `server/src/protocol.ts` and `client/src/protocol.ts` are **duplicate copies** of the WS protocol: `ClientMessage`, `ServerMessage`, and the view types (`RoomView`, `PlayerView`, `TurnPublic`, …), plus `WS_PATH`. There is no shared package — each workspace imports its own local copy.
+- **Any change to one copy must be mirrored byte-for-byte in the other.** There is no build step or type check that enforces this across workspaces; a divergence is a silent bug. Diff the two files as part of any protocol change.
 - **The server is authoritative and never leaks the secret word to non-drawers.** `TurnPublic` carries only `wordPattern` (blanks) + `wordLength`; the full `word` appears only in `turnEnd`. Preserve this invariant in any protocol or engine change.
-- **The protocol is FROZEN (Phase 1f).** Any change to `protocol.ts` must be mirrored in the server's zod schema (`server/src/ws/schema.ts`). Treat protocol changes as "ask first".
+- **The protocol is FROZEN (Phase 1f).** Any change to `protocol.ts` must be mirrored in the server's zod schema (`server/src/ws/schema.ts`) as well as in the client's copy. Treat protocol changes as "ask first".
 - Stroke points are **normalised to 0..1** (resolution-independent) so the canvas can render at any size.
 
 ## Client (Phase 2 — to build)
 
-Still the Vite/Lit demo. When building the real client, it must connect to the server's `/ws` explicitly (in dev the client is served by Vite on its own port, not by the Node server), speak the `@gts/shared` protocol, and support reconnection via the `sessionId` returned in `joined`.
+Still the Vite/Lit demo. When building the real client, it must connect to the server's `/ws` explicitly (in dev the client is served by Vite on its own port, not by the Node server), speak the protocol defined in `client/src/protocol.ts`, and support reconnection via the `sessionId` returned in `joined`.
 
 ## Config caveats
 
-- **Dev = three processes.** `npm run dev` runs `@gts/shared` (tsc watch), `@gts/client` (Vite), and `@gts/server` (`tsx --watch`) in parallel via `concurrently`. `predev` builds shared once up front. In dev the client is served by Vite (which proxies `/ws` and `/api` to the Fastify server); only the production build assembles `deploy/`, which the Node server serves from (`npm start` → `node deploy/server/index.js`).
-- **Vitest resolves `.js` → `.ts`.** `vitest.config.ts` sets `resolve.extensionAlias` so the server's `nodenext` `.js` specifiers load their `.ts` sources under Vite. Tests live in `{shared,server}/test/**/*.test.ts` (`environment: node`). No client tests yet.
+- **Dev = two processes.** `npm run dev` runs `@gts/client` (Vite) and `@gts/server` (`tsx --watch`) in parallel via `concurrently`. In dev the client is served by Vite (which proxies `/ws` and `/api` to the Fastify server); only the production build assembles `deploy/`, which the Node server serves from (`npm start` → `node deploy/server/index.js`).
+- **Vitest resolves `.js` → `.ts`.** `vitest.config.ts` sets `resolve.extensionAlias` so the server's `nodenext` `.js` specifiers load their `.ts` sources under Vite. Tests live in `{server,client}/test/**/*.test.ts` (`environment: node`).
 
 ## Architecture & TypeScript
 
 - **UI framework: Lit web components.** `LitElement` subclasses registered with `@customElement('tag-name')`; styles in a static `styles = css\`…\`` block (Shadow DOM–scoped); reactive state via `@property`/`@state`; templates via the `html\`…\`` tagged template. `index.html` mounts the root component as a custom-element tag.
 - **TypeScript is strict everywhere.** `verbatimModuleSyntax` is on in all packages — use `import type { … }` for type-only imports. `noUnusedLocals`/`noUnusedParameters`, `erasableSyntaxOnly`, and `noFallthroughCasesInSwitch` are enforced across all tsconfigs.
-- **Three module worlds.** Client (`client/tsconfig.json`) is **bundler-mode**, `noEmit`, `allowImportingTsExtensions` — Vite bundles it, local imports use `.ts` extensions. Server (`server/tsconfig.json`) and shared (`shared/tsconfig.json`) are **`nodenext`** and **emit** JS — local imports use `.js` specifiers pointing at `.ts` sources. Don't mix the two worlds.
+- **Two module worlds.** Client (`client/tsconfig.json`) is **bundler-mode**, `noEmit`, `allowImportingTsExtensions` — Vite bundles it, local imports use `.ts` extensions. Server (`server/tsconfig.json`) is **`nodenext`** and **emits** JS — local imports use `.js` specifiers pointing at `.ts` sources. Don't mix the two worlds.
 
 ## Conventions
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { WS_PATH, type ClientMessage, type ServerMessage } from "@gts/shared";
+import { WS_PATH, type ClientMessage, type ServerMessage } from "../src/protocol.js";
 
 describe("protocol", () => {
   it("exposes the websocket path", () => {

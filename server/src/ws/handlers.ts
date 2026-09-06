@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { WebSocket } from "ws";
-import { WS_PATH, type ServerMessage } from "@gts/shared";
+import { WS_PATH, type ServerMessage } from "../protocol.js";
 import type { Connection } from "../game/connection.js";
 import type { RoomRegistry } from "../game/registry.js";
 import type { Room } from "../game/room.js";

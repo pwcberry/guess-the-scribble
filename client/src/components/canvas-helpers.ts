@@ -1,6 +1,6 @@
 import type { GameState } from "../state/store.ts";
 
-/** A canvas point, normalised to 0..1 on both axes (see `Stroke` in `@gts/shared`). */
+/** A canvas point, normalised to 0..1 on both axes (see `Stroke` in `../protocol.ts`). */
 export type Point = [number, number];
 
 /** A named brush colour, so swatches can carry an accessible label. */

@@ -1,4 +1,4 @@
-import { WS_PATH, type ClientMessage, type ServerMessage, type Stroke } from "@gts/shared";
+import { WS_PATH, type ClientMessage, type ServerMessage, type Stroke } from "../protocol.ts";
 
 /** Lifecycle of the underlying socket, surfaced to the UI. */
 export type ConnectionStatus

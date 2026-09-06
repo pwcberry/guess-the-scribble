@@ -1,6 +1,6 @@
 import { LitElement, css, html, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { ServerMessage, Stroke } from "@gts/shared";
+import type { ServerMessage, Stroke } from "../protocol.ts";
 import type { GameClient } from "../net/ws-client.ts";
 import type { GameState } from "../state/store.ts";
 import {

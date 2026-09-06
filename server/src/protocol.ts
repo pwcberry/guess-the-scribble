@@ -1,0 +1,130 @@
+/**
+ * Wire protocol shared by the Guess the Scribble client and server.
+ *
+ * Single source of truth for everything exchanged over the WebSocket. The
+ * server is authoritative: guessers never receive the secret word, only its
+ * pattern (blanks). Both `@gts/client` and `@gts/server` import from here.
+ *
+ * Vocabulary: a **turn** is one drawer's period; a **round** is a full rotation
+ * (one turn per player). `turnStart`/`turnEnd` carry per-turn state; `gameEnd`
+ * fires after the last turn of the last round.
+ *
+ * FROZEN (re-frozen 2026-07-25 after the round→turn rename): inbound
+ * `ClientMessage`s are validated at the server boundary by the zod schema in
+ * `@gts/server` (ws/schema.ts). Any change here must be mirrored there. Treat
+ * protocol changes as "ask first".
+ */
+
+/** WebSocket endpoint path the client connects to. */
+export const WS_PATH = "/ws";
+
+/** A single drawn stroke segment. Points are normalised to 0..1 (resolution-independent). */
+export interface Stroke {
+  points: [number, number][];
+  color: string;
+  width: number;
+}
+
+export interface RoomSettings {
+  /** Number of rounds in a game. */
+  rounds: number;
+  /** Seconds a drawer has to draw before the round auto-ends. */
+  drawTimeSec: number;
+  /** Maximum players allowed in the room. */
+  maxPlayers: number;
+}
+
+export type RoomStatus = "lobby" | "playing" | "ended";
+export type TurnPhase = "choosing" | "drawing" | "intermission";
+
+/** Public per-player state safe to send to everyone. */
+export interface PlayerView {
+  sessionId: string;
+  nickname: string;
+  score: number;
+  connected: boolean;
+  isHost: boolean;
+  isDrawer: boolean;
+  hasGuessed: boolean;
+}
+
+/** Public turn state — note: never includes the secret word, only its pattern. */
+export interface TurnPublic {
+  /** Global turn index (1-based) — one drawer's period. Unique per turn. */
+  turnOrdinal: number;
+  /** Current round (full rotation), 1-based; 1..totalRounds. */
+  roundOrdinal: number;
+  /** Number of rounds (full rotations) in the game. */
+  totalRounds: number;
+  drawerSessionId: string;
+  drawerNickname: string;
+  /** Masked word, e.g. "_ _ _" for "cat"; real spaces are shown. */
+  wordPattern: string;
+  wordLength: number;
+  phase: TurnPhase;
+  /** Epoch ms when the drawing phase ends; null outside the drawing phase. */
+  endsAt: number | null;
+}
+
+export interface RoomView {
+  code: string;
+  status: RoomStatus;
+  settings: RoomSettings;
+  players: PlayerView[];
+  turn: TurnPublic | null;
+}
+
+export interface Score {
+  sessionId: string;
+  nickname: string;
+  score: number;
+}
+
+export interface TurnResult {
+  sessionId: string;
+  nickname: string;
+  guessed: boolean;
+  /** Points earned this turn. */
+  points: number;
+}
+
+export type ChatKind = "chat" | "correct" | "close" | "system";
+
+export type ErrorCode
+  = | "room_not_found"
+    | "nickname_taken"
+    | "room_full"
+    | "invalid_message"
+    | "not_allowed"
+    | "bad_request";
+
+/** Messages sent from a client to the server. */
+export type ClientMessage
+  = | { type: "join"; roomCode: string; nickname: string; sessionId?: string }
+    | { type: "startGame" }
+    | { type: "chooseWord"; word: string }
+    | { type: "draw"; stroke: Stroke }
+    | { type: "clearCanvas" }
+    | { type: "undo" }
+    | { type: "guess"; text: string }
+    | { type: "leave" };
+
+/** Messages sent from the server to clients. */
+export type ServerMessage
+  = | { type: "joined"; sessionId: string; room: RoomView }
+    | { type: "roomState"; room: RoomView }
+    | { type: "playerJoined"; player: PlayerView }
+    | { type: "playerLeft"; sessionId: string }
+    | { type: "turnStart"; turn: TurnPublic }
+    | { type: "wordChoices"; words: string[] }
+    | { type: "drawBroadcast"; stroke: Stroke }
+    | { type: "clearCanvas" }
+    | { type: "guessResult"; correct: boolean }
+    | { type: "chat"; nickname: string; text: string; kind: ChatKind }
+    | { type: "correctGuess"; sessionId: string; nickname: string }
+    | { type: "turnEnd"; word: string; results: TurnResult[]; scores: Score[] }
+    | { type: "gameEnd"; scores: Score[] }
+    | { type: "error"; code: ErrorCode; message: string };
+
+/** Union of everything exchanged, either direction. */
+export type GameMessage = ClientMessage | ServerMessage;

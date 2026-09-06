@@ -1,4 +1,4 @@
-import type { RoomSettings, RoomStatus } from "@gts/shared";
+import type { RoomSettings, RoomStatus } from "../protocol.ts";
 
 /** Shape returned by `POST /api/rooms` (see server/src/routes/rooms.ts). */
 export interface CreateRoomResponse {

@@ -1,6 +1,6 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { RoomSettings } from "@gts/shared";
+import type { RoomSettings } from "../protocol.ts";
 import { createRoom } from "../net/api.ts";
 import { DEFAULT_SETTINGS } from "./settings-presets.ts";
 import { elementStyles } from "./element-styles.ts";

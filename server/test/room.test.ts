@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@gts/shared";
+import type { ServerMessage } from "../src/protocol.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Connection } from "../src/game/connection.js";
 import { RoomRegistry } from "../src/game/registry.js";

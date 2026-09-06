@@ -1,4 +1,4 @@
-import type { Score, Stroke } from "@gts/shared";
+import type { Score, Stroke } from "../protocol.js";
 
 export interface PersistedResult {
   sessionId: string;
