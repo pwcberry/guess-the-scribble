@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@gts/shared";
+import type { ServerMessage } from "../protocol.js";
 
 /**
  * A player's outbound channel, abstracted away from the transport. The WebSocket

@@ -47,9 +47,9 @@ function run(command, args, { allowFailure = false } = {}) {
 }
 
 /**
- * Ensures `.env` and the built shared workspace exist, brings up the
- * PostgreSQL container, runs the vitest suite, and tears the container down
- * regardless of outcome before exiting with the suite's exit code.
+ * Ensures `.env` exists, brings up the PostgreSQL container, runs the vitest
+ * suite, and tears the container down regardless of outcome before exiting
+ * with the suite's exit code.
  * @returns {Promise<void>}
  */
 async function main() {
@@ -57,10 +57,6 @@ async function main() {
   try {
     if (!(process.env.NODE_ENV === "test" || existsSync(".env"))) {
       throw new Error(".env file not found. Please create one based on .env.example");
-    }
-
-    if (!existsSync("/shared/lib")) {
-      await run("npm", ["run", "build:shared"]);
     }
 
     // `--wait` blocks until the healthcheck passes.

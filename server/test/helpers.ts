@@ -1,5 +1,5 @@
 import { sql } from "kysely";
-import type { ServerMessage } from "@gts/shared";
+import type { ServerMessage } from "../src/protocol.js";
 import type { Db } from "../src/db/connection.js";
 import type { Connection } from "../src/game/connection.js";
 import type { Room } from "../src/game/room.js";

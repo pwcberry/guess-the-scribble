@@ -1,4 +1,4 @@
-import type { RoomSettings } from "@gts/shared";
+import type { RoomSettings } from "../protocol.js";
 
 export type { RoomSettings };
 

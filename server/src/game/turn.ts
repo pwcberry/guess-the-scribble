@@ -1,4 +1,4 @@
-import type { TurnPhase, Stroke } from "@gts/shared";
+import type { TurnPhase, Stroke } from "../protocol.js";
 
 /**
  * Mutable state for one turn (one drawer). The word is the secret held only by

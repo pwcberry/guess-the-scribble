@@ -5,7 +5,7 @@ import stylistic from "@stylistic/eslint-plugin";
 import {defineConfig, globalIgnores} from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['**/dist', './shared/lib', '.release']),
+  globalIgnores(['**/dist', '.release']),
   {
     files: ['**/*.{ts,tsx}', 'scripts/*.js'],
     extends: [
@@ -35,8 +35,8 @@ export default defineConfig([
     },
   },
   {
-    // Server and shared code runs on Node, not in the browser.
-    files: ['server/**/*.ts', 'shared/**/*.ts', '**/*.config.ts'],
+    // Server code runs on Node, not in the browser.
+    files: ['server/**/*.ts', '**/*.config.ts'],
     languageOptions: {
       globals: globals.node,
     },

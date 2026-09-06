@@ -1,4 +1,4 @@
-import type { RoomSettings } from "@gts/shared";
+import type { RoomSettings } from "../protocol.ts";
 
 /**
  * Default room settings shown on the create-room form. Mirrors the server's
@@ -7,6 +7,6 @@ import type { RoomSettings } from "@gts/shared";
  */
 export const DEFAULT_SETTINGS: RoomSettings = {
   rounds: 3,
-  drawTimeSec: 80,
+  drawTimeSec: 60,
   maxPlayers: 8,
 };

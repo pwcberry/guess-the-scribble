@@ -8,7 +8,7 @@ import type {
   Score,
   ServerMessage,
   Stroke,
-} from "@gts/shared";
+} from "../protocol.js";
 import type { Connection } from "./connection.js";
 import type { GameEvent, GameEventSink, PersistedResult } from "./events.js";
 import { makeId, makeSessionId } from "./ids.js";

@@ -1,4 +1,4 @@
-import type { PlayerView, TurnPhase, TurnPublic } from "@gts/shared";
+import type { PlayerView, TurnPhase, TurnPublic } from "../src/protocol.ts";
 import { describe, expect, it } from "vitest";
 import { initialState, type GameState } from "../src/state/store.ts";
 import { chatInputState } from "../src/components/chat-helpers.ts";

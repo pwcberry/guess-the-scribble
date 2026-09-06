@@ -5,14 +5,11 @@
  * .release/
  * ├─ server/          ← compiled server (server/dist)
  * ├─ client/          ← Vite bundle (client/dist)
- * ├─ shared/
- * │  ├─ list/         ← compiled protocol (shared/dist)
- * │  └─ package.json  ← copied so `@gts/shared` resolves via `file:` link
  * ├─ package.json     ← runtime manifest (production deps only)
  * └─ node_modules/    ← populated by `npm install --omit=dev` below
  * ```
- * Run this after `npm run build -w @gts/{shared,client,server}` has produced
- * each workspace's deployable artifacts.
+ * Run this after `npm run build -w @gts/{client,server}` has produced each
+ * workspace's deployable artifacts.
  */
 
 import { spawnSync } from "node:child_process";
@@ -61,20 +58,10 @@ async function main() {
   await copyDist(resolve(root, "server/dist"), resolve(releaseDirectory, "server"));
   await copyDist(resolve(root, "client/dist"), resolve(releaseDirectory, "client"));
 
-  await mkdir(resolve(releaseDirectory, "shared"), { recursive: true });
-  await copyDist(resolve(root, "shared/lib"), resolve(releaseDirectory, "shared/lib"));
-  await cp(
-    resolve(root, "shared/package.json"),
-    resolve(releaseDirectory, "shared/package.json"),
-  );
-
   const rootPkg = await readJson(resolve(root, "package.json"));
   const serverPkg = await readJson(resolve(root, "server/package.json"));
 
   const dependencies = { ...serverPkg.dependencies };
-  // Replace the workspace protocol with a local file dep so a plain
-  // `npm install` inside `.release/` resolves it.
-  dependencies["@gts/shared"] = "file:./shared";
 
   const deployPkg = {
     name: "guess-the-scribble",

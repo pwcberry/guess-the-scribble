@@ -1,6 +1,6 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { TurnPublic } from "@gts/shared";
+import type { TurnPublic } from "../protocol.ts";
 import type { GameState, TurnOutcome } from "../state/store.ts";
 import { drawerNickname, isLocalDrawer } from "./canvas-helpers.ts";
 import { remainingSeconds, timerFraction } from "./hud-helpers.ts";
@@ -8,7 +8,7 @@ import { remainingSeconds, timerFraction } from "./hud-helpers.ts";
 /**
  * The turn heads-up display: which round it is, who's drawing, the word (shown
  * in full to the drawer, as blanks to everyone else), and a live countdown.
- * Between turns it becomes the reveal panel — the server only broadcasts
+ * Between turns, it becomes the reveal panel — the server only broadcasts
  * `turnEnd` (not a phase change), so the reveal is keyed off `lastTurn`, not
  * the turn phase, which still reads "drawing" on the client during intermission.
  */

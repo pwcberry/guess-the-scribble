@@ -1,6 +1,6 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { PlayerView } from "@gts/shared";
+import type { PlayerView } from "../protocol.ts";
 import { rankByScore } from "./scoreboard-helpers.ts";
 
 /**
