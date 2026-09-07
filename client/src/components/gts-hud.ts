@@ -35,14 +35,12 @@ export class GtsHud extends LitElement {
   }
 
   render() {
-    const turn = this.state.room?.turn ?? null;
     if (this.state.lastTurn) {
       return this.renderReveal(this.state.lastTurn);
     }
-    if (!turn) {
-      return null;
-    }
-    return this.renderActive(turn);
+
+    const turn = this.state.room?.turn ?? null;
+    return turn ? this.renderActive(turn) : null;
   }
 
   private renderActive(turn: TurnPublic) {
@@ -54,18 +52,15 @@ export class GtsHud extends LitElement {
 
     return html`
       <section aria-label="Round status">
-        <div class="top">
-          <span class="round">Round ${turn.roundOrdinal} of ${turn.totalRounds}</span>
+        <div class="round">
+          <span>Round ${turn.roundOrdinal} of ${turn.totalRounds}</span>
+        </div>
+        ${this.renderWord(turn, drawing)}
+        <div class="timer">
           ${drawing
             ? html`<span class="clock ${urgency}" role="timer" aria-label=${`${seconds} seconds left`}>${seconds}s</span>`
             : null}
         </div>
-
-        ${this.renderWord(turn, drawing)}
-
-        ${drawing
-          ? html`<div class="bar" role="presentation"><span class="fill ${urgency}" style="width:${(fraction * 100).toFixed(1)}%"></span></div>`
-          : null}
       </section>
     `;
   }
@@ -124,24 +119,24 @@ export class GtsHud extends LitElement {
     }
     section {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 14px 16px;
-      border-radius: 12px;
+      flex-direction: row;
+      gap: 12px;
+      padding: 4px 8px;
+      border-radius: 3px;
       background: color-mix(in srgb, currentColor 6%, transparent);
-      max-height: 160px;
-      overflow-y: auto;
-    }
-    .top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
     }
     .round {
-      font-size: 13px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       opacity: 0.65;
+      flex: 1;
+      max-width: 20%;
+    }
+    .timer {
+      flex: 1;
+      max-width: 20%;
+      text-align: right;
     }
     .clock {
       font-variant-numeric: tabular-nums;
@@ -160,6 +155,7 @@ export class GtsHud extends LitElement {
       align-items: center;
       gap: 2px;
       text-align: center;
+      flex: 1;
     }
     .label {
       font-size: 12px;

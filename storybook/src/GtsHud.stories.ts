@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 import { html } from "lit";
 import type { GameState } from "@gts/client/src/state/store.ts";
+import { players, turnView } from "./data/harness.ts";
 import "./GtsHud.ts";
 
 const meta: Meta = {
@@ -13,7 +14,32 @@ export default meta;
 
 type Story = StoryObj<GameState>;
 
-export const Default: Story = {
+export const Drawing: Story = {
+  args: {
+    connection: "idle",
+    sessionId: "player-123",
+    room: {
+      code: "ABCDEF",
+      status: "playing",
+      settings: {
+        rounds: 1,
+        drawTimeSec: 60,
+        maxPlayers: 3,
+      },
+      turn: turnView("player-123", 4, "drawing"),
+      players,
+    },
+    wordChoices: [],
+    myWord: "head",
+    chat: [],
+    lastTurn: null,
+    finalScores: null,
+    error: null,
+    nextChatId: 1,
+  },
+};
+
+export const Guessing: Story = {
   args: {
     connection: "idle",
     sessionId: null,
@@ -25,46 +51,8 @@ export const Default: Story = {
         drawTimeSec: 60,
         maxPlayers: 3,
       },
-      turn: {
-        turnOrdinal: 1,
-        roundOrdinal: 1,
-        totalRounds: 3,
-        drawerSessionId: "drawer-123",
-        drawerNickname: "Alice",
-        wordPattern: "_ _ _ _",
-        wordLength: 4,
-        phase: "drawing",
-        endsAt: Date.now() + 30000, // 30 seconds from now
-      },
-      players: [
-        {
-          sessionId: "player-123",
-          nickname: "Alice",
-          score: 10,
-          connected: true,
-          isHost: true,
-          isDrawer: true,
-          hasGuessed: false,
-        },
-        {
-          sessionId: "player-124",
-          nickname: "Bob",
-          score: 5,
-          connected: true,
-          isHost: false,
-          isDrawer: false,
-          hasGuessed: false,
-        },
-        {
-          sessionId: "player-125",
-          nickname: "Charlie",
-          score: 3,
-          connected: true,
-          isHost: false,
-          isDrawer: false,
-          hasGuessed: false,
-        },
-      ],
+      turn: turnView("player-123", 4, "drawing"),
+      players,
     },
     wordChoices: [],
     myWord: "head",
