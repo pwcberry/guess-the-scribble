@@ -1,11 +1,8 @@
-import { LitElement, html } from "lit-element";
-import { customElement, property } from "lit/decorators.js";
-import type { GamePageState } from "./GtsGamePage.stories.ts";
+import { LitElement, html } from "lit";
+import { customElement } from "lit/decorators.js";
 
 @customElement("gts-game-page")
 export class GtsGamePage extends LitElement {
-  @property() accessor data!: GamePageState;
-
   render() {
     return html`
       <div>
@@ -18,6 +15,6 @@ export class GtsGamePage extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "gts-game-screen": GtsGamePage;
+    "gts-game-page": GtsGamePage;
   }
 }

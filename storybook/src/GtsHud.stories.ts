@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 import { html } from "lit";
 import type { GameState } from "@gts/client/src/state/store.ts";
+import "./GtsHud.ts";
 
 const meta: Meta = {
   component: "gts-hud",
