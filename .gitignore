@@ -152,3 +152,6 @@ vite.config.ts.timestamp-*
 # Assembled release artifacts (Heroku slug layout)
 .release/
 !.release/heroku.yml
+
+*storybook.log
+storybook-static

@@ -1,0 +1,26 @@
+{
+  "name": "@gts/storybook",
+  "version": "0.0.0",
+  "description": "Storybook for building the UI without having to run the entire application.",
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@gts/client": "^1.0.0",
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "vite": "^8.2.2",
+    "storybook": "^10.6.0",
+    "@storybook/web-components-vite": "^10.6.0",
+    "@storybook/addon-vitest": "^10.6.0",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/addon-docs": "^10.6.0",
+    "eslint-plugin-storybook": "^10.6.0"
+  },
+  "scripts": {
+    "storybook": "storybook dev -p 3200",
+    "build-storybook": "storybook build"
+  }
+}
