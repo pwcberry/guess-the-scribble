@@ -174,15 +174,15 @@ export class GtsApp extends LitElement {
     .game {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 4px;
       min-width: 992px;
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
     }
     .board {
       display: flex;
       align-items: flex-start;
-      gap: 16px;
+      gap: 4px;
       width: 100%;
     }
     .board gts-scoreboard {
