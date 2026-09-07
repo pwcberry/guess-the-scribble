@@ -7,10 +7,10 @@
   "type": "module",
   "main": "index.js",
   "dependencies": {
-    "@gts/client": "^1.0.0",
-    "lit": "^3.3.3"
+    "@gts/client": "^1.0.0"
   },
   "devDependencies": {
+    "lit": "^3.3.3",
     "vite": "^8.2.2",
     "storybook": "^10.6.0",
     "@storybook/web-components-vite": "^10.6.0",

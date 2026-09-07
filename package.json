@@ -25,7 +25,8 @@
     "db:start": "docker compose up -d",
     "db:migrate": "npm run db:migrate -w @gts/server",
     "db:reset": "npm run db:reset -w @gts/server",
-    "start": "node .release/server/index.js"
+    "start": "node .release/server/index.js",
+    "storybook": "npm run storybook -w @gts/storybook"
   },
   "engines": {
     "node": ">=24"
