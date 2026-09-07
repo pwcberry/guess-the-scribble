@@ -1,4 +1,5 @@
-import { defineConfig, transformWithEsbuild, type Plugin } from "vite";
+import process from "node:process";
+import { defineConfig, loadEnv, transformWithEsbuild, type Plugin } from "vite";
 
 /**
  * The client uses standard (TC39) decorators, which no browser yet parses
@@ -37,18 +38,24 @@ function lowerStandardDecorators(): Plugin {
 // The client dev server proxies API + WebSocket traffic to the Fastify server
 // so the browser can use same-origin "/ws" and "/api" URLs in development. In
 // production the built client is served by the server itself (see @gts/server).
-export default defineConfig({
-  plugins: [lowerStandardDecorators()],
-  server: {
-    port: 3100,
-    proxy: {
-      "/ws": { target: "ws://localhost:3000", ws: true },
-      "/api": { target: "http://localhost:3000" },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const CLIENT_PORT = env.CLIENT_PORT ? Number(env.CLIENT_PORT) : 3100;
+  const SERVER_PORT = env.SERVER_PORT ? Number(env.SERVER_PORT) : 3000;
+
+  return {
+    plugins: [lowerStandardDecorators()],
+    server: {
+      port: CLIENT_PORT,
+      proxy: {
+        "/ws": { target: `ws://localhost:${SERVER_PORT}`, ws: true },
+        "/api": { target: `http://localhost:${SERVER_PORT}` },
+      },
     },
-  },
-  build: {
-    target: "es2022",
-    outDir: "dist",
-    emptyOutDir: true,
-  },
+    build: {
+      target: "es2022",
+      outDir: "dist",
+      emptyOutDir: true,
+    },
+  };
 });

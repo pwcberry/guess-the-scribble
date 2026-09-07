@@ -116,16 +116,24 @@ export class GtsChat extends LitElement {
   }
 
   static styles = [elementStyles, css`
+    /*
+     * The panel is sized by its grid cell (the app stretches it to the height of
+     * the drawing column) rather than by its own content: the section is taken
+     * out of flow so a long backlog can never push the layout taller. The log is
+     * the only flexible row, so the input/note always stay pinned to the bottom.
+     */
     :host {
+      position: relative;
       display: block;
       width: 100%;
       min-height: 200px;
       font: 15px/1.5 system-ui, sans-serif;
     }
     section {
+      position: absolute;
+      inset: 0;
       display: flex;
       flex-direction: column;
-      height: 100%;
       min-height: 0;
       gap: 10px;
     }
@@ -133,14 +141,24 @@ export class GtsChat extends LitElement {
       list-style: none;
       margin: 0;
       padding: 12px;
-      flex: 1;
-      min-height: 160px;
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
       display: flex;
       flex-direction: column;
       gap: 4px;
       border-radius: 10px;
       background: color-mix(in srgb, currentColor 6%, transparent);
+    }
+    /*
+     * Grow from the bottom: while the log is under-filled the auto margin drops
+     * the messages to the foot of the panel, and once it overflows the margin
+     * collapses to zero so the whole history stays scrollable upwards.
+     */
+    .log > li:first-child:not(.empty) {
+      margin-block-start: auto;
     }
     .log li {
       padding: 3px 4px;
@@ -181,6 +199,8 @@ export class GtsChat extends LitElement {
     }
     .entry {
       display: flex;
+      flex: 0 0 auto;
+      align-items: center;
       gap: 8px;
     }
     .entry input {
@@ -188,6 +208,7 @@ export class GtsChat extends LitElement {
       min-width: 0;
     }
     .note {
+      flex: 0 0 auto;
       margin: 0;
       padding: 10px 12px;
       text-align: center;

@@ -1,11 +1,3 @@
-import process from "node:process";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { buildApp } from "./app.js";
-import { createDb } from "./db/connection.js";
-import { seedWords } from "./db/seed.js";
-import { runMigrations } from "./db/setup.js";
-
 /**
  * guess-the-scribble server bootstrap.
  *
@@ -14,8 +6,13 @@ import { runMigrations } from "./db/setup.js";
  * steps), builds the Fastify app, and starts listening. Rooms/turns/scoring
  * live in the game engine (server/game).
  */
-
-const PORT = Number(process.env.PORT ?? 3000);
+import process from "node:process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { buildApp } from "./app.js";
+import { createDb } from "./db/connection.js";
+import { seedWords } from "./db/seed.js";
+import { runMigrations } from "./db/setup.js";
 
 // The production layout assembles everything into a top-level `deploy/` folder:
 //   deploy/server/index.js  ← this file, after `tsc` + copy
@@ -37,5 +34,6 @@ const db = createDb();
 await runMigrations(db);
 await seedWords(db);
 
+const PORT = Number(process.env.SERVER_PORT ?? 3000);
 const app = await buildApp({ db, clientDist, logger: true });
 await app.listen({ port: PORT, host: "0.0.0.0" });

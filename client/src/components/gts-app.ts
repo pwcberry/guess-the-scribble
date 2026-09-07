@@ -187,6 +187,15 @@ export class GtsApp extends LitElement {
       width: 100%;
       max-width: 100%;
     }
+    /*
+     * The canvas column sets the row height (its stage has a fixed aspect
+     * ratio), so stretch the chat to match it. gts-chat takes its own content
+     * out of flow, so it never grows the row as messages arrive — it scrolls.
+     */
+    .board > gts-chat {
+      align-self: stretch;
+      min-height: 0;
+    }
     .placeholder {
       max-width: 420px;
       margin: 0 auto;
