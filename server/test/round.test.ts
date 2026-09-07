@@ -72,15 +72,20 @@ describe("Round lifecycle", () => {
     expect(bob.conn.ofType("drawBroadcast")).toHaveLength(1);
   });
 
-  it("auto-picks a word if the drawer dithers", () => {
+  it("stays in choosing indefinitely until the drawer picks a word", () => {
     const ada = joinRoom(room, "ada");
     joinRoom(room, "bob");
     room.startGame(ada.sessionId);
     expect(room.turn?.phase).toBe("choosing");
 
-    clock.advance(15_000);
+    clock.advance(60_000);
+    expect(room.turn?.phase).toBe("choosing");
+    expect(room.turn?.word).toBeNull();
+
+    const word = ada.conn.last("wordChoices")!.words[0]!;
+    room.chooseWord(ada.sessionId, word);
     expect(room.turn?.phase).toBe("drawing");
-    expect(room.turn?.word).not.toBeNull();
+    expect(room.turn?.word).toBe(word);
   });
 
   it("ends the turn on the timer, revealing the word, then rotates the drawer", () => {

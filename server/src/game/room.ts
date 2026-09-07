@@ -23,8 +23,6 @@ import { isCloseGuess, isCorrectGuess, letterCount, maskWord } from "./wordmask.
 export type RoomStatus = "lobby" | "playing" | "ended";
 
 const MAX_NICKNAME = 20;
-/** Seconds the drawer has to choose a word before one is auto-picked. */
-const CHOOSE_TIME_MS = 15_000;
 /** Pause between the turn reveal and the next turn starting. */
 const INTERMISSION_MS = 5_000;
 
@@ -264,7 +262,6 @@ export class Room {
 
     this.broadcast({ type: "turnStart", turn: this.publicTurn()! });
     drawer.send({ type: "wordChoices", words: this.turn.choices });
-    this.setTimer(CHOOSE_TIME_MS, () => this.autoChoose());
   }
 
   chooseWord(sessionId: string, word: string): void {
@@ -276,13 +273,6 @@ export class Room {
       return;
     }
     this.startDrawing(word);
-  }
-
-  private autoChoose(): void {
-    const turn = this.turn;
-    if (turn && turn.phase === "choosing" && turn.choices.length > 0) {
-      this.startDrawing(turn.choices[0]!);
-    }
   }
 
   private startDrawing(word: string): void {

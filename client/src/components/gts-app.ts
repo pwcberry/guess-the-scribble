@@ -180,22 +180,12 @@ export class GtsApp extends LitElement {
       margin: 0 auto;
     }
     .board {
-      display: flex;
-      align-items: flex-start;
+      display: grid;
+      grid-template-columns: 15fr 60fr 25fr;
+      align-items: start;
       gap: 4px;
       width: 100%;
-    }
-    .board gts-scoreboard {
-      flex: 0 0 15%;
-      min-width: 0;
-    }
-    .board gts-canvas {
-      flex: 0 0 60%;
-      min-width: 0;
-    }
-    .board gts-chat {
-      flex: 0 0 25%;
-      min-width: 0;
+      max-width: 100%;
     }
     .placeholder {
       max-width: 420px;
