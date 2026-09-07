@@ -109,15 +109,13 @@ export class GtsApp extends LitElement {
         case "playing":
           return html`
             <div class="game">
-              <div class="stage">
-                <gts-hud .state=${state}></gts-hud>
-                <gts-canvas .state=${state} .client=${this.store.client}></gts-canvas>
-              </div>
-              <div class="side">
+              <gts-hud .state=${state}></gts-hud>
+              <div class="board">
                 <gts-scoreboard
                   .players=${room.players}
                   .selfSessionId=${state.sessionId}
                 ></gts-scoreboard>
+                <gts-canvas .state=${state} .client=${this.store.client}></gts-canvas>
                 <gts-chat .state=${state}></gts-chat>
               </div>
             </div>
@@ -176,33 +174,28 @@ export class GtsApp extends LitElement {
     .game {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
       min-width: 992px;
-      max-width: 1100px;
+      max-width: 1400px;
       margin: 0 auto;
     }
-    .stage {
+    .board {
       display: flex;
-      flex-direction: column;
-      gap: 12px;
-      flex: 1 1 auto;
+      align-items: flex-start;
+      gap: 16px;
+      width: 100%;
+    }
+    .board gts-scoreboard {
+      flex: 0 0 15%;
       min-width: 0;
     }
-    .side {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      flex: 0 0 auto;
+    .board gts-canvas {
+      flex: 0 0 60%;
+      min-width: 0;
     }
-    @media (min-width: 860px) {
-      .game {
-        flex-direction: row;
-        align-items: flex-start;
-      }
-      .side {
-        flex: 0 0 320px;
-        min-width: 260px;
-      }
+    .board gts-chat {
+      flex: 0 0 25%;
+      min-width: 0;
     }
     .placeholder {
       max-width: 420px;
