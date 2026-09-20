@@ -1,0 +1,112 @@
+/*
+ * The panel is sized by its grid cell (the app stretches it to the height of
+ * the drawing column) rather than by its own content: the section is taken
+ * out of flow so a long backlog can never push the layout taller. The log is
+ * the only flexible row, so the input/note always stay pinned to the bottom.
+ */
+gts-chat {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 200px;
+}
+
+gts-chat section {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gts-chat__log {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+/*
+ * Grow from the bottom: while the log is under-filled the auto margin drops
+ * the messages to the foot of the panel, and once it overflows the margin
+ * collapses to zero so the whole history stays scrollable upwards.
+ */
+.gts-chat__log > .gts-chat__message:first-child:not(.gts-chat__message--empty) {
+  margin-block-start: auto;
+}
+
+.gts-chat__message {
+  padding: 3px 4px;
+  overflow-wrap: anywhere;
+}
+
+.gts-chat__message--empty {
+  margin: auto;
+  text-align: center;
+  opacity: 0.55;
+  font-size: 14px;
+}
+
+.gts-chat__author {
+  font-weight: 700;
+}
+
+.gts-chat__author::after {
+  content: ":";
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.gts-chat__message--correct {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.gts-chat__message--correct .gts-chat__author::after {
+  content: "";
+}
+
+.gts-chat__message--correct::before {
+  content: "✓ ";
+}
+
+.gts-chat__message--close {
+  color: var(--color-warning);
+  font-style: italic;
+}
+
+.gts-chat__message--system {
+  text-align: center;
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+.gts-chat__form {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.gts-chat__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.gts-chat__note {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 10px 12px;
+  text-align: center;
+  opacity: 0.7;
+  font-size: 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}

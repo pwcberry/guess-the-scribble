@@ -1,6 +1,8 @@
 import { setCustomElementsManifest, type Preview } from "@storybook/web-components-vite";
 // @ts-expect-error "@gts/client/public/colors.css" is not a module, but we want to import it for its side effects"
 import "@gts/client/public/colors.css";
+// @ts-expect-error "./stories.css" is not a module, but we want to import it for its side effects"
+import "./stories.css";
 
 import gtsCustomElements from "@gts/client/custom-elements.json";
 setCustomElementsManifest(gtsCustomElements);

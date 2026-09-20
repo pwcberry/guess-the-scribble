@@ -1,8 +1,8 @@
-import { LitElement, css, html } from "lit";
+import { LitElement, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { ChatEntry, GameState } from "../state/store.ts";
 import { chatInputState } from "./chat-helpers.ts";
-import { elementStyles } from "./element-styles.ts";
+import "./gts-chat.css";
 
 /** Emitted when the player submits a guess (or, off-round, a chat line). */
 export interface GuessRequest {
@@ -25,8 +25,15 @@ export class GtsChat extends LitElement {
   private log: HTMLElement | null = null;
   private lastCount = 0;
 
+  // Renders into light DOM (not Shadow DOM) so its CSS lives in a plain,
+  // BEM-scoped global stylesheet (gts-chat.css) instead of a shadow-adopted
+  // `static styles` template — the only component in the repo that does this.
+  protected createRenderRoot() {
+    return this;
+  }
+
   firstUpdated() {
-    this.log = this.renderRoot.querySelector(".log");
+    this.log = this.renderRoot.querySelector(".gts-chat__log");
   }
 
   protected updated() {
@@ -48,9 +55,10 @@ export class GtsChat extends LitElement {
     const input = chatInputState(this.state);
     return html`
       <section aria-label="Chat and guesses">
-        <ol class="log" role="log" aria-live="polite" aria-relevant="additions">
+        <ol class="gts-chat__log" aria-roledescription="Chat messages" role="list" aria-live="polite" aria-relevant="additions">
           ${this.state.chat.length === 0
-            ? html`<li class="empty">No messages yet — guesses show up here.</li>`
+            ? html`
+              <li class="gts-chat__message gts-chat__message--empty">No messages yet — guesses show up here.</li>`
             : this.state.chat.map(entry => this.renderEntry(entry))}
         </ol>
         ${input.enabled ? this.renderInput(input.placeholder) : this.renderNote(input.note)}
@@ -61,20 +69,21 @@ export class GtsChat extends LitElement {
   private renderEntry(entry: ChatEntry) {
     switch (entry.kind) {
       case "correct":
-        return html`<li class="correct"><span class="who">${entry.nickname}</span> ${entry.text}</li>`;
+        return html`<li class="gts-chat__message gts-chat__message--correct"><span class="gts-chat__author">${entry.nickname}</span> ${entry.text}</li>`;
       case "close":
-        return html`<li class="close">${entry.text}</li>`;
+        return html`<li class="gts-chat__message gts-chat__message--close">${entry.text}</li>`;
       case "system":
-        return html`<li class="system">${entry.text}</li>`;
+        return html`<li class="gts-chat__message gts-chat__message--system">${entry.text}</li>`;
       default:
-        return html`<li class="chat"><span class="who">${entry.nickname}</span> ${entry.text}</li>`;
+        return html`<li class="gts-chat__message"><span class="gts-chat__author">${entry.nickname}</span> ${entry.text}</li>`;
     }
   }
 
   private renderInput(placeholder: string) {
     return html`
-      <form class="entry" @submit=${this.onSubmit}>
+      <form class="gts-chat__form" @submit=${this.onSubmit}>
         <input
+          class="gts-chat__input"
           type="text"
           maxlength="60"
           autocomplete="off"
@@ -92,7 +101,7 @@ export class GtsChat extends LitElement {
     if (!note) {
       return null;
     }
-    return html`<p class="note" role="status">${note}</p>`;
+    return html`<p class="gts-chat__note" role="status">${note}</p>`;
   }
 
   private onInput(event: Event) {
@@ -114,110 +123,6 @@ export class GtsChat extends LitElement {
     );
     this.draft = "";
   }
-
-  static styles = [elementStyles, css`
-    /*
-     * The panel is sized by its grid cell (the app stretches it to the height of
-     * the drawing column) rather than by its own content: the section is taken
-     * out of flow so a long backlog can never push the layout taller. The log is
-     * the only flexible row, so the input/note always stay pinned to the bottom.
-     */
-    :host {
-      position: relative;
-      display: block;
-      width: 100%;
-      min-height: 200px;
-      font: 15px/1.5 system-ui, sans-serif;
-    }
-    section {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      gap: 10px;
-    }
-    .log {
-      list-style: none;
-      margin: 0;
-      padding: 12px;
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      scrollbar-gutter: stable;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      border-radius: 10px;
-      background: color-mix(in srgb, currentColor 6%, transparent);
-    }
-    /*
-     * Grow from the bottom: while the log is under-filled the auto margin drops
-     * the messages to the foot of the panel, and once it overflows the margin
-     * collapses to zero so the whole history stays scrollable upwards.
-     */
-    .log > li:first-child:not(.empty) {
-      margin-block-start: auto;
-    }
-    .log li {
-      padding: 3px 4px;
-      overflow-wrap: anywhere;
-    }
-    .empty {
-      margin: auto;
-      text-align: center;
-      opacity: 0.55;
-      font-size: 14px;
-    }
-    .who {
-      font-weight: 700;
-    }
-    .who::after {
-      content: ":";
-      font-weight: 400;
-      opacity: 0.6;
-    }
-    .correct {
-      color: var(--color-success);
-      font-weight: 600;
-    }
-    .correct .who::after {
-      content: "";
-    }
-    .correct::before {
-      content: "✓ ";
-    }
-    .close {
-      color: var(--color-warning);
-      font-style: italic;
-    }
-    .system {
-      text-align: center;
-      opacity: 0.6;
-      font-size: 14px;
-    }
-    .entry {
-      display: flex;
-      flex: 0 0 auto;
-      align-items: center;
-      gap: 8px;
-    }
-    .entry input {
-      flex: 1;
-      min-width: 0;
-    }
-    .note {
-      flex: 0 0 auto;
-      margin: 0;
-      padding: 10px 12px;
-      text-align: center;
-      opacity: 0.7;
-      font-size: 14px;
-      border-radius: 8px;
-      background: color-mix(in srgb, currentColor 6%, transparent);
-    }
-  `];
 }
 
 declare global {
