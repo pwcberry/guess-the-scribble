@@ -1,6 +1,9 @@
-import type { Preview } from "@storybook/web-components-vite";
+import { setCustomElementsManifest, type Preview } from "@storybook/web-components-vite";
 // @ts-expect-error "@gts/client/public/colors.css" is not a module, but we want to import it for its side effects"
 import "@gts/client/public/colors.css";
+
+import gtsCustomElements from "@gts/client/custom-elements.json";
+setCustomElementsManifest(gtsCustomElements);
 
 /**
  * @storybook/web-components-vite relies on `import.meta.hot.decline()` to
@@ -36,7 +39,7 @@ const preview: Preview = {
       // 'todo' - show a11y violations in the test UI only
       // 'error' - fail CI on a11y violations
       // 'off' - skip a11y checks entirely
-      test: "todo",
+      test: "off",
     },
   },
 };

@@ -1,0 +1,2531 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "src/protocol.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "WS_PATH",
+          "type": {
+            "text": "string"
+          },
+          "default": "\"/ws\"",
+          "description": "WebSocket endpoint path the client connects to."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "WS_PATH",
+          "declaration": {
+            "name": "WS_PATH",
+            "module": "src/protocol.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "dist/assets/index-DuGNfPjz.js",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "e"
+        },
+        {
+          "kind": "function",
+          "name": "t",
+          "parameters": [
+            {
+              "name": "e"
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "e",
+          "declaration": {
+            "name": "t",
+            "module": "dist/assets/index-DuGNfPjz.js"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "e",
+          "declaration": {
+            "name": "t",
+            "module": "dist/assets/index-DuGNfPjz.js"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/net/api.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "createRoom",
+          "return": {
+            "type": {
+              "text": "Promise<CreateRoomResponse>"
+            }
+          },
+          "parameters": [
+            {
+              "name": "settings",
+              "optional": true,
+              "type": {
+                "text": "Partial<RoomSettings>"
+              }
+            }
+          ],
+          "description": "Create a room on the server. Settings are optional; the server clamps them to\nvalid ranges and fills any gaps with defaults. Returns the shareable invite\ncode the caller then joins over the WebSocket."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "createRoom",
+          "declaration": {
+            "name": "createRoom",
+            "module": "src/net/api.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/net/ws-client.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Typed WebSocket client for the game protocol. Owns the connection lifecycle:\nsends the initial `join`, re-joins with the stored `sessionId` after a drop,\nand fans inbound `ServerMessage`s out to subscribers. The client is transport\nfor the protocol only — game state lives in the store (see state/store.ts).",
+          "name": "GameClient",
+          "members": [
+            {
+              "kind": "field",
+              "name": "connect",
+              "type": {
+                "text": "(url: string) => Socket"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "storage",
+              "type": {
+                "text": "SessionStorage"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "url",
+              "type": {
+                "text": "string"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "backoffMs",
+              "type": {
+                "text": "number[]"
+              },
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "messageListeners",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new Set<MessageListener>()"
+            },
+            {
+              "kind": "field",
+              "name": "statusListeners",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new Set<StatusListener>()"
+            },
+            {
+              "kind": "field",
+              "name": "socket",
+              "type": {
+                "text": "Socket | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "join",
+              "type": {
+                "text": "JoinParams | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "status",
+              "type": {
+                "text": "ConnectionStatus"
+              },
+              "privacy": "private",
+              "default": "\"idle\""
+            },
+            {
+              "kind": "field",
+              "name": "attempt",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "reconnectTimer",
+              "type": {
+                "text": "ReturnType<typeof setTimeout> | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "closedByUser",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "connectionStatus",
+              "type": {
+                "text": "ConnectionStatus"
+              },
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "onMessage",
+              "return": {
+                "type": {
+                  "text": "() => void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "listener",
+                  "type": {
+                    "text": "MessageListener"
+                  }
+                }
+              ],
+              "description": "Subscribe to inbound server messages. Returns an unsubscribe function."
+            },
+            {
+              "kind": "method",
+              "name": "onStatus",
+              "return": {
+                "type": {
+                  "text": "() => void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "listener",
+                  "type": {
+                    "text": "StatusListener"
+                  }
+                }
+              ],
+              "description": "Subscribe to connection-status changes. Returns an unsubscribe function."
+            },
+            {
+              "kind": "method",
+              "name": "joinRoom",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "params",
+                  "type": {
+                    "text": "JoinParams"
+                  }
+                }
+              ],
+              "description": "Connect and join a room; reconnects automatically until `disconnect()`. If\nthe socket is already open (e.g. retrying after a rejected nickname), the\nnew `join` is sent over the existing connection instead of opening another."
+            },
+            {
+              "kind": "method",
+              "name": "disconnect",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "description": "Close the connection intentionally; suppresses reconnection."
+            },
+            {
+              "kind": "method",
+              "name": "send",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "ClientMessage"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "startGame",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "chooseWord",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "word",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "draw",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "stroke",
+                  "type": {
+                    "text": "Stroke"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "clearCanvas",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "undo",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "guess",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "text",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "leave",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "open",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "sendJoin",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "receive",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "data",
+                  "type": {
+                    "text": "unknown"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "handleClose",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "clearReconnect",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "setStatus",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "status",
+                  "type": {
+                    "text": "ConnectionStatus"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GameClient",
+          "declaration": {
+            "name": "GameClient",
+            "module": "src/net/ws-client.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/canvas-helpers.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "BRUSH_COLORS",
+          "type": {
+            "text": "readonly BrushColor[]"
+          },
+          "default": "[ { name: \"Black\", value: \"#1b1b1f\" }, { name: \"Grey\", value: \"#8b8b93\" }, { name: \"White\", value: \"#ffffff\" }, { name: \"Red\", value: \"#e5484d\" }, { name: \"Orange\", value: \"#f76b15\" }, { name: \"Yellow\", value: \"#ffc53d\" }, { name: \"Green\", value: \"#30a46c\" }, { name: \"Teal\", value: \"#12a594\" }, { name: \"Blue\", value: \"#0091ff\" }, { name: \"Navy\", value: \"#3e63dd\" }, { name: \"Purple\", value: \"#8e4ec6\" }, { name: \"Pink\", value: \"#e93d82\" }, { name: \"Brown\", value: \"#ad7f58\" }, ]",
+          "description": "Drawing palette. A broad, flat set of paint colours — not the app's purple\naccent, which belongs to chrome, not the artwork. The canvas paints on white,\nso white doubles as an eraser."
+        },
+        {
+          "kind": "variable",
+          "name": "BRUSH_SIZES",
+          "type": {
+            "text": "readonly number[]"
+          },
+          "default": "[3, 6, 12, 22]",
+          "description": "Selectable brush widths, in reference pixels (see `REFERENCE_WIDTH`)."
+        },
+        {
+          "kind": "variable",
+          "name": "DEFAULT_COLOR"
+        },
+        {
+          "kind": "variable",
+          "name": "DEFAULT_SIZE",
+          "default": "BRUSH_SIZES[1]"
+        },
+        {
+          "kind": "variable",
+          "name": "REFERENCE_WIDTH",
+          "type": {
+            "text": "number"
+          },
+          "default": "800",
+          "description": "Canvas width, in CSS pixels, at which a `Stroke.width` is drawn 1:1. Rendering\nscales line width by `actualWidth / REFERENCE_WIDTH` so a drawing keeps its\nproportions on any canvas size — the same rationale as normalised points."
+        },
+        {
+          "kind": "function",
+          "name": "clamp01",
+          "return": {
+            "type": {
+              "text": "number"
+            }
+          },
+          "parameters": [
+            {
+              "name": "n",
+              "type": {
+                "text": "number"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "normalizePoint",
+          "return": {
+            "type": {
+              "text": "Point"
+            }
+          },
+          "parameters": [
+            {
+              "name": "clientX",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "name": "clientY",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "name": "rect",
+              "type": {
+                "text": "RectLike"
+              }
+            }
+          ],
+          "description": "Map a pointer's client coordinates to a normalised `[x, y]` in 0..1 relative\nto `rect`, clamped to the canvas so strokes that stray outside stay in bounds.\nA zero-sized rect (element not laid out yet) maps to the origin."
+        },
+        {
+          "kind": "function",
+          "name": "currentDrawerId",
+          "return": {
+            "type": {
+              "text": "string | null"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Session id of the current turn's drawer, or null when no turn is active."
+        },
+        {
+          "kind": "function",
+          "name": "isLocalDrawer",
+          "return": {
+            "type": {
+              "text": "boolean"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Whether this client is the drawer of the current turn."
+        },
+        {
+          "kind": "function",
+          "name": "isDrawingPhase",
+          "return": {
+            "type": {
+              "text": "boolean"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Whether the current turn is in its active drawing phase."
+        },
+        {
+          "kind": "function",
+          "name": "canDraw",
+          "return": {
+            "type": {
+              "text": "boolean"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Whether this client may draw right now (drawer, during the drawing phase)."
+        },
+        {
+          "kind": "function",
+          "name": "drawerNickname",
+          "return": {
+            "type": {
+              "text": "string | null"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Nickname of the current drawer, for captions like \"Ada is drawing\"."
+        },
+        {
+          "kind": "function",
+          "name": "turnKey",
+          "return": {
+            "type": {
+              "text": "number | null"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Identity of the current turn, used to reset the canvas when the turn\nchanges. Null when no turn is active. Turn ordinals are unique within a game."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "BRUSH_COLORS",
+          "declaration": {
+            "name": "BRUSH_COLORS",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "BRUSH_SIZES",
+          "declaration": {
+            "name": "BRUSH_SIZES",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "DEFAULT_COLOR",
+          "declaration": {
+            "name": "DEFAULT_COLOR",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "DEFAULT_SIZE",
+          "declaration": {
+            "name": "DEFAULT_SIZE",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "REFERENCE_WIDTH",
+          "declaration": {
+            "name": "REFERENCE_WIDTH",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "clamp01",
+          "declaration": {
+            "name": "clamp01",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "normalizePoint",
+          "declaration": {
+            "name": "normalizePoint",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "currentDrawerId",
+          "declaration": {
+            "name": "currentDrawerId",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "isLocalDrawer",
+          "declaration": {
+            "name": "isLocalDrawer",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "isDrawingPhase",
+          "declaration": {
+            "name": "isDrawingPhase",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "canDraw",
+          "declaration": {
+            "name": "canDraw",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "drawerNickname",
+          "declaration": {
+            "name": "drawerNickname",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "turnKey",
+          "declaration": {
+            "name": "turnKey",
+            "module": "src/components/canvas-helpers.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/chat-helpers.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "chatInputState",
+          "return": {
+            "type": {
+              "text": "ChatInputState"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "chatInputState",
+          "declaration": {
+            "name": "chatInputState",
+            "module": "src/components/chat-helpers.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/element-styles.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "elementStyles",
+          "default": "css` h1 { font-family: \"Merriweather\", serif; font-optical-sizing: auto; font-weight: 700; font-style: normal; font-variation-settings: \"wdth\" 100; font-size: 2.75rem; margin-block: 0.5em 0.875em; line-height: 1; } h1.heading { color: var(--color-burgundy); } @supports (background-clip: text) { h1.heading { background-image: linear-gradient(var(--color-burgundy), var(--color-orange), var(--color-green)); background-clip: text; color: transparent; font-size: 4rem; text-shadow: 2px 3px 0 rgba(0,0,0,0.2); } } h2 { font-family: \"Merriweather\", serif; font-optical-sizing: auto; font-weight: 700; font-style: normal; font-variation-settings: \"wdth\" 100; font-size: 1.875rem; margin-block: 0.875em 0.5em; line-height: 1; } input, button, textarea, select { font: inherit; } button { cursor: pointer; line-height: 1.875em; text-decoration: none; -webkit-appearance: none; white-space: normal; user-select: none; vertical-align: middle; border-radius: 0.25rem; border-width: 1px; border-style: solid; padding-block: 0.25em 0.375em; padding-inline: 0.75em; font-size: 1rem; font-weight: 500; font-family: \"Inter\", Helvetica, Arial, sans-serif; } button.primary { color: var(--color-button-primary-text); background-color: var(--color-button-primary-background); border-color: var(--color-button-primary-border); transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out; } button.primary:hover { background-color: var(--color-button-primary-background-hover); border-color: var(--color-button-primary-border-hover); } button.secondary { color: var(--color-button-secondary-text); background-color: var(--color-button-secondary-background); border-color: var(--color-button-secondary-border); transition: background-color 0.2s ease-in-out; } button.secondary:hover { background-color: var(--color-button-secondary-background-hover); } button[disabled], button:disabled { background-color: transparent; border-color: transparent; color: var(--color-sandstone); cursor: default; } button[disabled] *, button:disabled * { pointer-events: none; } input[type=\"text\"], textarea { border: 1px solid var(--color-charcoal-40); border-radius: 0.25rem; padding: 0.25em; font-size: 1rem; font-weight: 400; font-family: \"Inter\", Helvetica, Arial, sans-serif; } `",
+          "description": "Shared element-level styles that mirror the global rules in public/index.css.\n\nBecause Lit components render into Shadow DOM, global stylesheets do not\npenetrate the shadow boundary — only CSS custom properties do. Spread this\nstylesheet into every component that uses h1, h2, button, or input so they\nget the design-system appearance consistently.\n\nUsage:\n  import { elementStyles } from \"./element-styles.ts\";\n  static styles = [elementStyles, css`...component-specific styles...`];"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "elementStyles",
+          "declaration": {
+            "name": "elementStyles",
+            "module": "src/components/element-styles.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-app.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Root component and screen router. Owns the single `GameStore`, re-rendering on\nevery state change, and picks the screen from the room status: join → lobby →\ngame → end. Translates child events (`gts-join`, `gts-start-game`) into client\ncalls, and keeps the URL's `?room=` code in sync so the lobby link is shareable.",
+          "name": "GtsApp",
+          "members": [
+            {
+              "kind": "field",
+              "name": "store",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new GameStore()"
+            },
+            {
+              "kind": "field",
+              "name": "unsubscribe",
+              "type": {
+                "text": "(() => void) | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "gameState",
+              "type": {
+                "text": "GameState"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "urlRoomCode",
+              "type": {
+                "text": "string | null"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "_onJoin",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_onStartGame",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_onGuess",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_onChooseWord",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "_onNewGame",
+              "privacy": "private",
+              "readonly": true,
+              "description": "Return to a fresh join screen. There is no in-protocol game restart."
+            },
+            {
+              "kind": "method",
+              "name": "_syncUrl",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "state",
+                  "type": {
+                    "text": "GameState"
+                  }
+                }
+              ],
+              "description": "Reflect the joined room into the URL so the link can be shared/reloaded."
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "_renderBanner",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "_renderScreen",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "_renderEnded",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "_placeholder",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "title",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "note",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "type": {
+                "text": "array"
+              },
+              "static": true,
+              "default": "[elementStyles, css` :host { display: block; width: 100%; min-width: 1024px; } .banner { padding: 8px 16px; text-align: center; background: var(--color-warning); color: var(--color-charcoal); font: 600 14px/1.4 system-ui, sans-serif; } main { padding: 12px 16px; } .game { display: flex; flex-direction: column; gap: 4px; min-width: 992px; max-width: 1600px; margin: 0 auto; } .board { display: grid; grid-template-columns: 15fr 60fr 25fr; align-items: start; gap: 4px; width: 100%; max-width: 100%; } /* * The canvas column sets the row height (its stage has a fixed aspect * ratio), so stretch the chat to match it. gts-chat takes its own content * out of flow, so it never grows the row as messages arrive — it scrolls. */ .board > gts-chat { align-self: stretch; min-height: 0; } .placeholder { max-width: 420px; margin: 0 auto; text-align: center; } `]"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsApp",
+          "declaration": {
+            "name": "GtsApp",
+            "module": "src/components/gts-app.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-canvas.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "The shared drawing surface. The drawer paints with the pointer and each\ncompleted line is sent as one `draw` message (one gesture = one `Stroke`, so\nundo removes a whole line — matching the server, which pops the last stroke).\nEveryone else watches: `drawBroadcast`/`clearCanvas` are streamed straight\nfrom the socket (they bypass the state store) and replayed onto the canvas.\n\nPoints are stored normalised (0..1); the canvas denormalises on render and\naccounts for `devicePixelRatio`, so the picture is identical at any size.",
+          "name": "GtsCanvas",
+          "members": [
+            {
+              "kind": "field",
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "client",
+              "type": {
+                "text": "GameClient"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "color",
+              "default": "DEFAULT_COLOR"
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "default": "DEFAULT_SIZE"
+            },
+            {
+              "kind": "field",
+              "name": "canvas",
+              "type": {
+                "text": "HTMLCanvasElement | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "ctx",
+              "type": {
+                "text": "CanvasRenderingContext2D | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "observer",
+              "type": {
+                "text": "ResizeObserver | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "unsubscribe",
+              "type": {
+                "text": "(() => void) | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "frame",
+              "type": {
+                "text": "number | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "strokes",
+              "type": {
+                "text": "Stroke[]"
+              },
+              "privacy": "private",
+              "default": "[]",
+              "description": "Committed strokes (from this drawer's own lines and from broadcasts)."
+            },
+            {
+              "kind": "field",
+              "name": "current",
+              "type": {
+                "text": "Stroke | null"
+              },
+              "privacy": "private",
+              "default": "null",
+              "description": "The line currently under the pointer, not yet committed/sent."
+            },
+            {
+              "kind": "field",
+              "name": "lastTurnKey",
+              "type": {
+                "text": "number | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "cssW",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "cssH",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0"
+            },
+            {
+              "kind": "method",
+              "name": "firstUpdated"
+            },
+            {
+              "kind": "method",
+              "name": "willUpdate",
+              "privacy": "protected",
+              "parameters": [
+                {
+                  "name": "changed",
+                  "type": {
+                    "text": "PropertyValues<this>"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "updated",
+              "privacy": "protected",
+              "parameters": [
+                {
+                  "name": "changed",
+                  "type": {
+                    "text": "PropertyValues<this>"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "subscribe",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "onServerMessage",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "message",
+                  "type": {
+                    "text": "ServerMessage"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "onPointerDown",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "onPointerMove",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "onPointerUp",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "pointFrom",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Point"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "undo",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "clear",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "reset",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "resize",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "requestRender",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "paint",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "drawStroke",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "stroke",
+                  "type": {
+                    "text": "Stroke"
+                  }
+                },
+                {
+                  "name": "w",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "h",
+                  "type": {
+                    "text": "number"
+                  }
+                },
+                {
+                  "name": "scale",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "renderWatcher",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "phase",
+                  "type": {
+                    "text": "string | null"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "choose",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "word",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The drawer picks a word. Routed through the app shell (rather than calling\nthe client directly like draw/undo/clear) so the store can remember the\nchosen word for the HUD — the protocol never echoes it back to the drawer."
+            },
+            {
+              "kind": "method",
+              "name": "renderWordChoice",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "words",
+                  "type": {
+                    "text": "string[]"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "renderToolbar",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "drawing",
+                  "type": {
+                    "text": "boolean"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "type": {
+                "text": "array"
+              },
+              "static": true,
+              "default": "[elementStyles, css` :host { display: flex; flex-direction: column; gap: 12px; width: 100%; } .stage { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: #ffffff; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); } canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: default; -webkit-user-select: none; user-select: none; } canvas.live { cursor: crosshair; } .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; background: color-mix(in srgb, #16171d 55%, transparent); color: #fff; text-align: center; } .overlay h2 { margin: 0; } .choices { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; } .choices button { font-size: 18px; font-weight: 600; padding: 14px 20px; background-color: var(--color-button-primary-background); border-color: var(--color-button-primary-border); color: var(--color-button-primary-text); border-radius: 10px; } .choices button:hover { background-color: var(--color-button-primary-background-hover); border-color: var(--color-button-primary-border-hover); } .caption { margin: 0; text-align: center; opacity: 0.7; font-size: 15px; } .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; } .swatches { display: flex; flex-wrap: wrap; gap: 6px; } .swatch { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); background: var(--swatch); cursor: pointer; } .swatch[aria-pressed=\"true\"] { outline: 2px solid currentColor; outline-offset: 2px; } .sizes { display: flex; gap: 6px; } .size { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: transparent; color: inherit; cursor: pointer; } .size[aria-pressed=\"true\"] { background: color-mix(in srgb, currentColor 14%, transparent); border-color: currentColor; } .dot { display: block; width: var(--d); height: var(--d); border-radius: 50%; background: currentColor; } .actions { display: flex; gap: 8px; margin-left: auto; } .actions button { font-size: 14px; padding: 9px 14px; border-radius: 8px; border: 1px solid color-mix(in srgb, currentColor 25%, transparent); background: transparent; color: inherit; } .actions button:hover:not(:disabled) { background: color-mix(in srgb, currentColor 10%, transparent); } button:disabled { opacity: 0.45; cursor: default; } `]"
+            }
+          ],
+          "events": [
+            {
+              "name": "gts-choose-word",
+              "type": {
+                "text": "CustomEvent"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsCanvas",
+          "declaration": {
+            "name": "GtsCanvas",
+            "module": "src/components/gts-canvas.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-chat.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Chat and guessing panel. Renders the running message log — guesses, correct\ncalls, private \"you're close\" nudges and system notices, each styled by kind —\nand an input that dispatches `gts-guess` for the app shell to send. A single\n`guess` message covers both guessing and chat; the server decides which based\non phase and role, and `chatInputState` mirrors when the input is usable.",
+          "name": "GtsChat",
+          "members": [
+            {
+              "kind": "field",
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "draft",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "kind": "field",
+              "name": "log",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "lastCount",
+              "type": {
+                "text": "number"
+              },
+              "privacy": "private",
+              "default": "0"
+            },
+            {
+              "kind": "method",
+              "name": "firstUpdated"
+            },
+            {
+              "kind": "method",
+              "name": "updated",
+              "privacy": "protected"
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "renderEntry",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "entry",
+                  "type": {
+                    "text": "ChatEntry"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "renderInput",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "placeholder",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "renderNote",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "note",
+                  "type": {
+                    "text": "string | null"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "onInput",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "onSubmit",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "type": {
+                "text": "array"
+              },
+              "static": true,
+              "default": "[elementStyles, css` /* * The panel is sized by its grid cell (the app stretches it to the height of * the drawing column) rather than by its own content: the section is taken * out of flow so a long backlog can never push the layout taller. The log is * the only flexible row, so the input/note always stay pinned to the bottom. */ :host { position: relative; display: block; width: 100%; min-height: 200px; font: 15px/1.5 system-ui, sans-serif; } section { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; gap: 10px; } .log { list-style: none; margin: 0; padding: 12px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; display: flex; flex-direction: column; gap: 4px; border-radius: 10px; background: color-mix(in srgb, currentColor 6%, transparent); } /* * Grow from the bottom: while the log is under-filled the auto margin drops * the messages to the foot of the panel, and once it overflows the margin * collapses to zero so the whole history stays scrollable upwards. */ .log > li:first-child:not(.empty) { margin-block-start: auto; } .log li { padding: 3px 4px; overflow-wrap: anywhere; } .empty { margin: auto; text-align: center; opacity: 0.55; font-size: 14px; } .who { font-weight: 700; } .who::after { content: \":\"; font-weight: 400; opacity: 0.6; } .correct { color: var(--color-success); font-weight: 600; } .correct .who::after { content: \"\"; } .correct::before { content: \"✓ \"; } .close { color: var(--color-warning); font-style: italic; } .system { text-align: center; opacity: 0.6; font-size: 14px; } .entry { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; } .entry input { flex: 1; min-width: 0; } .note { flex: 0 0 auto; margin: 0; padding: 10px 12px; text-align: center; opacity: 0.7; font-size: 14px; border-radius: 8px; background: color-mix(in srgb, currentColor 6%, transparent); } `]"
+            }
+          ],
+          "events": [
+            {
+              "name": "gts-guess",
+              "type": {
+                "text": "CustomEvent"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsChat",
+          "declaration": {
+            "name": "GtsChat",
+            "module": "src/components/gts-chat.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-game-over.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "End-of-game screen: final standings with the winner called out, and a way to\nstart over. \"Play again\" dispatches `gts-new-game` for the app shell (there is\nno in-protocol restart — it returns the player to a fresh join).",
+          "name": "GtsGameOver",
+          "members": [
+            {
+              "kind": "field",
+              "name": "scores",
+              "type": {
+                "text": "Score[]"
+              },
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "selfSessionId",
+              "type": {
+                "text": "string | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "playAgain",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "type": {
+                "text": "array"
+              },
+              "static": true,
+              "default": "[elementStyles, css` :host { display: block; width: 100%; max-width: 420px; margin: 0 auto; } section { display: flex; flex-direction: column; gap: 16px; text-align: center; } .eyebrow { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; } h1 { margin: 0; } .crown { font-size: 24px; } ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; text-align: left; } li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, currentColor 8%, transparent); } li[aria-current=\"true\"] { background: color-mix(in srgb, var(--color-button-primary-background) 22%, transparent); } .rank { flex: 0 0 1.5em; font-variant-numeric: tabular-nums; font-weight: 700; opacity: 0.6; } .name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .you { font-weight: 400; opacity: 0.6; } .score { font-variant-numeric: tabular-nums; font-weight: 700; } button { align-self: center; } `]"
+            }
+          ],
+          "events": [
+            {
+              "name": "gts-new-game",
+              "type": {
+                "text": "CustomEvent"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsGameOver",
+          "declaration": {
+            "name": "GtsGameOver",
+            "module": "src/components/gts-game-over.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-hud.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "The turn heads-up display: which round it is, who's drawing, the word (shown\nin full to the drawer, as blanks to everyone else), and a live countdown.\nBetween turns, it becomes the reveal panel — the server only broadcasts\n`turnEnd` (not a phase change), so the reveal is keyed off `lastTurn`, not\nthe turn phase, which still reads \"drawing\" on the client during intermission.",
+          "name": "GtsHud",
+          "members": [
+            {
+              "kind": "field",
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "now"
+            },
+            {
+              "kind": "field",
+              "name": "ticker",
+              "type": {
+                "text": "ReturnType<typeof setInterval> | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "renderActive",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "turn",
+                  "type": {
+                    "text": "TurnPublic"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "renderWord",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "turn",
+                  "type": {
+                    "text": "TurnPublic"
+                  }
+                },
+                {
+                  "name": "drawing",
+                  "type": {
+                    "text": "boolean"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "renderReveal",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "outcome",
+                  "type": {
+                    "text": "TurnOutcome"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "static": true,
+              "default": "css` :host { display: block; width: 100%; font: 16px/1.4 system-ui, sans-serif; } section { display: flex; flex-direction: row; gap: 12px; padding: 4px 8px; border-radius: 3px; background: color-mix(in srgb, currentColor 6%, transparent); } .round { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.65; flex: 1; max-width: 20%; } .timer { flex: 1; max-width: 20%; text-align: right; } .clock { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 20px; } .clock.warn { color: var(--color-warning); } .clock.urgent { color: var(--color-error); } .word { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; flex: 1; } .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; } .pattern, .secret { font: 700 26px/1.2 ui-monospace, monospace; letter-spacing: 0.18em; } .prompt { margin: 0; text-align: center; font-weight: 600; } .bar { height: 8px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, currentColor 14%, transparent); } .fill { display: block; height: 100%; border-radius: 999px; background: var(--color-success); transition: width 0.5s linear; } .fill.warn { background: var(--color-warning); } .fill.urgent { background: var(--color-error); } .reveal { align-items: stretch; } .revealed { margin: 0; text-align: center; font-size: 18px; } .revealed strong { font-weight: 800; } .reveal ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; } .reveal li { display: flex; align-items: center; gap: 8px; } .who { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tag { font-size: 13px; opacity: 0.6; } .pts { font-variant-numeric: tabular-nums; font-weight: 700; } .next { margin: 0; text-align: center; font-size: 13px; opacity: 0.6; } `"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsHud",
+          "declaration": {
+            "name": "GtsHud",
+            "module": "src/components/gts-hud.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-join.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Home screen. With an invite code in the URL the player just enters a nickname\nand joins; without one they configure a new room, which is created over HTTP\nbefore joining. Either path ends by dispatching a `gts-join` event that the\napp shell turns into a WebSocket connection.",
+          "name": "GtsJoin",
+          "members": [
+            {
+              "kind": "field",
+              "name": "roomCode",
+              "type": {
+                "text": "string | null"
+              },
+              "default": "null",
+              "description": "Invite code from the URL, if the player followed a shared link."
+            },
+            {
+              "kind": "field",
+              "name": "errorMessage",
+              "type": {
+                "text": "string | null"
+              },
+              "default": "null",
+              "description": "Server-reported error from a previous join attempt (e.g. nickname taken)."
+            },
+            {
+              "kind": "field",
+              "name": "nickname",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "kind": "field",
+              "name": "settings",
+              "type": {
+                "text": "RoomSettings"
+              },
+              "default": "{ ...DEFAULT_SETTINGS }"
+            },
+            {
+              "kind": "field",
+              "name": "busy",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "localError",
+              "type": {
+                "text": "string | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "_renderSettings",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "_onNickname",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "_onKeydown",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "_onSetting",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "key",
+                  "type": {
+                    "text": "keyof RoomSettings"
+                  }
+                },
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "_submit",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "_emitJoin",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "roomCode",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "nickname",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "type": {
+                "text": "array"
+              },
+              "static": true,
+              "default": "[elementStyles, css` :host { display: block; width: 100%; max-width: 420px; margin: 0 auto; padding: 24px; } section { display: flex; flex-direction: column; gap: 16px; } h1 { margin: 0; text-align: center; } .tagline { margin: 0; text-align: center; opacity: 0.75; } label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; } input { width: 100%; box-sizing: border-box; } fieldset { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; border: 1px solid color-mix(in srgb, currentColor 20%, transparent); border-radius: 8px; margin: 0; } legend { padding: 0 6px; font-weight: 600; } .setting { font-size: 13px; font-weight: 500; } .error { margin: 0; color: var(--color-error); font-size: 14px; } `]"
+            }
+          ],
+          "events": [
+            {
+              "name": "gts-join",
+              "type": {
+                "text": "CustomEvent"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsJoin",
+          "declaration": {
+            "name": "GtsJoin",
+            "module": "src/components/gts-join.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-lobby.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Pre-game lobby. Shows the invite code and a copyable share link, the roster of\njoined players, and the room settings. The host gets a Start button (enabled\nonce enough players are present); everyone else waits. Starting the game\ndispatches `gts-start-game` for the app shell to send over the socket.",
+          "name": "GtsLobby",
+          "members": [
+            {
+              "kind": "field",
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "copied",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "_selectAll",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "Event"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "_copy",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "link",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "_start",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "type": {
+                "text": "array"
+              },
+              "static": true,
+              "default": "[elementStyles, css` :host { display: block; width: 100%; max-width: 480px; margin: 0 auto; padding: 24px; box-sizing: border-box; } section { display: flex; flex-direction: column; gap: 20px; } header { display: flex; align-items: center; justify-content: space-between; } h1 { margin: 0; color: var(--color-brand); } .code { font: 700 22px/1 ui-monospace, monospace; letter-spacing: 2px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, currentColor 10%, transparent); } .invite { display: flex; gap: 8px; } .invite input { flex: 1; min-width: 0; } button { white-space: nowrap; } .players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; } .players li { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; background: color-mix(in srgb, currentColor 6%, transparent); } .players li.offline { opacity: 0.5; } .name { font-weight: 600; } .badge { font-size: 12px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 999px; background: var(--color-button-primary-background); color: var(--color-button-primary-text); } .badge.dim { background: color-mix(in srgb, currentColor 30%, transparent); } .settings { display: flex; gap: 24px; margin: 0; } .settings dt { font-size: 12px; text-transform: uppercase; opacity: 0.6; } .settings dd { margin: 0; font-weight: 600; } .start { align-self: stretch; } .hint { margin: 0; text-align: center; opacity: 0.7; font-size: 14px; } `]"
+            }
+          ],
+          "events": [
+            {
+              "name": "gts-start-game",
+              "type": {
+                "text": "CustomEvent"
+              }
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsLobby",
+          "declaration": {
+            "name": "GtsLobby",
+            "module": "src/components/gts-lobby.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/gts-scoreboard.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Live standings during a game: players ordered by score with their rank and\nstatus (who is drawing, who has already guessed, the host, anyone offline).\nStatus is shown with an icon *and* a label so it never relies on colour.",
+          "name": "GtsScoreboard",
+          "members": [
+            {
+              "kind": "field",
+              "name": "players",
+              "type": {
+                "text": "PlayerView[]"
+              },
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "selfSessionId",
+              "type": {
+                "text": "string | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "method",
+              "name": "render"
+            },
+            {
+              "kind": "method",
+              "name": "renderBadges",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "player",
+                  "type": {
+                    "text": "PlayerView"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "field",
+              "name": "styles",
+              "static": true,
+              "default": "css` :host { display: block; width: 100%; font: 15px/1.4 system-ui, sans-serif; } section { display: flex; flex-direction: column; gap: 8px; } h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; } ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; } li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, currentColor 6%, transparent); } li[aria-current=\"true\"] { background: color-mix(in srgb, var(--color-brand) 22%, transparent); } li.offline { opacity: 0.5; } .rank { flex: 0 0 1.5em; font-variant-numeric: tabular-nums; font-weight: 700; opacity: 0.6; text-align: right; } .name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .you { font-weight: 400; opacity: 0.6; } .badges { display: inline-flex; gap: 4px; font-size: 13px; } .badge.ok { color: var(--color-success); font-weight: 700; } .score { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-weight: 700; } .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } `"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "GtsScoreboard",
+          "declaration": {
+            "name": "GtsScoreboard",
+            "module": "src/components/gts-scoreboard.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/hud-helpers.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "remainingMs",
+          "return": {
+            "type": {
+              "text": "number"
+            }
+          },
+          "parameters": [
+            {
+              "name": "endsAt",
+              "type": {
+                "text": "number | null"
+              }
+            },
+            {
+              "name": "now",
+              "type": {
+                "text": "number"
+              }
+            }
+          ],
+          "description": "Milliseconds left on the drawing timer; 0 once past `endsAt` or outside drawing."
+        },
+        {
+          "kind": "function",
+          "name": "remainingSeconds",
+          "return": {
+            "type": {
+              "text": "number"
+            }
+          },
+          "parameters": [
+            {
+              "name": "endsAt",
+              "type": {
+                "text": "number | null"
+              }
+            },
+            {
+              "name": "now",
+              "type": {
+                "text": "number"
+              }
+            }
+          ],
+          "description": "Whole seconds left, rounded up so the clock only hits 0 at the deadline."
+        },
+        {
+          "kind": "function",
+          "name": "timerFraction",
+          "return": {
+            "type": {
+              "text": "number"
+            }
+          },
+          "parameters": [
+            {
+              "name": "endsAt",
+              "type": {
+                "text": "number | null"
+              }
+            },
+            {
+              "name": "now",
+              "type": {
+                "text": "number"
+              }
+            },
+            {
+              "name": "totalMs",
+              "type": {
+                "text": "number"
+              }
+            }
+          ],
+          "description": "Fraction of the drawing window still remaining, 0..1, for a progress bar.\n`totalMs` is the round's full duration (`drawTimeSec * 1000`)."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "remainingMs",
+          "declaration": {
+            "name": "remainingMs",
+            "module": "src/components/hud-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "remainingSeconds",
+          "declaration": {
+            "name": "remainingSeconds",
+            "module": "src/components/hud-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "timerFraction",
+          "declaration": {
+            "name": "timerFraction",
+            "module": "src/components/hud-helpers.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/lobby-helpers.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "MIN_PLAYERS",
+          "type": {
+            "text": "number"
+          },
+          "default": "2",
+          "description": "Minimum players needed before the host can start a game."
+        },
+        {
+          "kind": "function",
+          "name": "parseRoomCode",
+          "return": {
+            "type": {
+              "text": "string | null"
+            }
+          },
+          "parameters": [
+            {
+              "name": "search",
+              "type": {
+                "text": "string"
+              }
+            }
+          ],
+          "description": "Read the invite code from a URL query string (`?room=ABC123`)."
+        },
+        {
+          "kind": "function",
+          "name": "inviteLink",
+          "return": {
+            "type": {
+              "text": "string"
+            }
+          },
+          "parameters": [
+            {
+              "name": "origin",
+              "type": {
+                "text": "string"
+              }
+            },
+            {
+              "name": "code",
+              "type": {
+                "text": "string"
+              }
+            }
+          ],
+          "description": "Build the shareable invite link for a room code."
+        },
+        {
+          "kind": "function",
+          "name": "connectedCount",
+          "return": {
+            "type": {
+              "text": "number"
+            }
+          },
+          "parameters": [
+            {
+              "name": "players",
+              "type": {
+                "text": "PlayerView[]"
+              }
+            }
+          ],
+          "description": "Count currently-connected players."
+        },
+        {
+          "kind": "function",
+          "name": "selfPlayer",
+          "return": {
+            "type": {
+              "text": "PlayerView | null"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "The local player's view within the current room, if identifiable."
+        },
+        {
+          "kind": "function",
+          "name": "isHost",
+          "return": {
+            "type": {
+              "text": "boolean"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Whether the local player is the room host."
+        },
+        {
+          "kind": "function",
+          "name": "canStartGame",
+          "return": {
+            "type": {
+              "text": "boolean"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            }
+          ],
+          "description": "Whether the game can be started from the current lobby state."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MIN_PLAYERS",
+          "declaration": {
+            "name": "MIN_PLAYERS",
+            "module": "src/components/lobby-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "parseRoomCode",
+          "declaration": {
+            "name": "parseRoomCode",
+            "module": "src/components/lobby-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "inviteLink",
+          "declaration": {
+            "name": "inviteLink",
+            "module": "src/components/lobby-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "connectedCount",
+          "declaration": {
+            "name": "connectedCount",
+            "module": "src/components/lobby-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "selfPlayer",
+          "declaration": {
+            "name": "selfPlayer",
+            "module": "src/components/lobby-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "isHost",
+          "declaration": {
+            "name": "isHost",
+            "module": "src/components/lobby-helpers.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "canStartGame",
+          "declaration": {
+            "name": "canStartGame",
+            "module": "src/components/lobby-helpers.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/scoreboard-helpers.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "rankByScore",
+          "return": {
+            "type": {
+              "text": "Ranked<T>[]"
+            }
+          },
+          "parameters": [
+            {
+              "name": "items",
+              "type": {
+                "text": "readonly T[]"
+              }
+            }
+          ],
+          "description": "Sort by score, highest first, and assign standard competition ranks: ties\nshare a rank and the next distinct score skips accordingly (100, 100, 90 →\nranks 1, 1, 3). Input is not mutated."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "rankByScore",
+          "declaration": {
+            "name": "rankByScore",
+            "module": "src/components/scoreboard-helpers.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/components/settings-presets.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "DEFAULT_SETTINGS",
+          "type": {
+            "text": "RoomSettings"
+          },
+          "default": "{ rounds: 3, drawTimeSec: 60, maxPlayers: 8, }",
+          "description": "Default room settings shown on the create-room form. Mirrors the server's\ndefaults (server/src/game/settings.ts); the server re-clamps whatever is sent,\nso these are only a starting point for the host to adjust."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "DEFAULT_SETTINGS",
+          "declaration": {
+            "name": "DEFAULT_SETTINGS",
+            "module": "src/components/settings-presets.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/state/store.ts",
+      "declarations": [
+        {
+          "kind": "variable",
+          "name": "initialState",
+          "type": {
+            "text": "GameState"
+          },
+          "default": "{ connection: \"idle\", sessionId: null, room: null, wordChoices: [], myWord: null, chat: [], lastTurn: null, finalScores: null, error: null, nextChatId: 1, }"
+        },
+        {
+          "kind": "function",
+          "name": "reduce",
+          "return": {
+            "type": {
+              "text": "GameState"
+            }
+          },
+          "parameters": [
+            {
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              }
+            },
+            {
+              "name": "message",
+              "type": {
+                "text": "ServerMessage"
+              }
+            }
+          ],
+          "description": "Pure reducer: folds one server message into the client game state. Kept free\nof side effects so it is trivially unit-testable; the store below wires it to\na live `GameClient`. Canvas stroke messages (`drawBroadcast`/`clearCanvas`)\nare streamed straight to the canvas component and intentionally pass through\nhere untouched."
+        },
+        {
+          "kind": "class",
+          "description": "Reactive game store. Subscribes to a `GameClient`, folds every server message\nthrough `reduce`, tracks connection status, and notifies subscribers with the\nnew immutable state. UI components read `getState()` and re-render on change.",
+          "name": "GameStore",
+          "members": [
+            {
+              "kind": "field",
+              "name": "client",
+              "type": {
+                "text": "GameClient"
+              },
+              "readonly": true,
+              "default": "client"
+            },
+            {
+              "kind": "field",
+              "name": "state",
+              "type": {
+                "text": "GameState"
+              },
+              "privacy": "private",
+              "default": "{ connection: \"idle\", sessionId: null, room: null, wordChoices: [], myWord: null, chat: [], lastTurn: null, finalScores: null, error: null, nextChatId: 1, }"
+            },
+            {
+              "kind": "field",
+              "name": "listeners",
+              "privacy": "private",
+              "readonly": true,
+              "default": "new Set<Listener>()"
+            },
+            {
+              "kind": "method",
+              "name": "getState",
+              "return": {
+                "type": {
+                  "text": "GameState"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "chooseWord",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "word",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ],
+              "description": "The local drawer commits to a word. Remembered locally (the protocol never\nechoes the word back to the drawer) before telling the server, so the HUD\ncan show it for the rest of the turn."
+            },
+            {
+              "kind": "method",
+              "name": "subscribe",
+              "return": {
+                "type": {
+                  "text": "() => void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "listener",
+                  "type": {
+                    "text": "Listener"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "set",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "next",
+                  "type": {
+                    "text": "GameState"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "initialState",
+          "declaration": {
+            "name": "initialState",
+            "module": "src/state/store.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "reduce",
+          "declaration": {
+            "name": "reduce",
+            "module": "src/state/store.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "GameStore",
+          "declaration": {
+            "name": "GameStore",
+            "module": "src/state/store.ts"
+          }
+        }
+      ]
+    }
+  ]
+}

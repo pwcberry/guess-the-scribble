@@ -1,8 +1,10 @@
 import type { PlayerView, TurnPhase, TurnPublic } from "@gts/client/src/protocol.ts";
+import type {ConnectionStatus} from "@gts/client/src/net/ws-client.ts";
+import type { GameState } from "@gts/client/src/state/store.ts";
 
 export const players: PlayerView[] = [
   {
-    sessionId: "player-123",
+    sessionId: "player-17",
     nickname: "Ali",
     score: 10,
     connected: true,
@@ -11,7 +13,7 @@ export const players: PlayerView[] = [
     hasGuessed: false,
   },
   {
-    sessionId: "player-124",
+    sessionId: "player-18",
     nickname: "Billie",
     score: 5,
     connected: true,
@@ -20,7 +22,7 @@ export const players: PlayerView[] = [
     hasGuessed: false,
   },
   {
-    sessionId: "player-125",
+    sessionId: "player-19",
     nickname: "Charlie",
     score: 3,
     connected: true,
@@ -40,4 +42,27 @@ export const turnView = (drawerSessionId: string, wordLength: number, phase: Tur
   wordLength,
   phase,
   endsAt: Date.now() + 20000, // 20 seconds from now
+});
+
+export const gameState = (connection: ConnectionStatus, sessionId: string | null, turn: TurnPublic): GameState => ({
+  connection,
+  sessionId,
+  room: {
+    code: "YELLOW",
+    status: "playing",
+    settings: {
+      rounds: 1,
+      drawTimeSec: 60,
+      maxPlayers: 3,
+    },
+    turn,
+    players,
+  },
+  wordChoices: [],
+  myWord: "head",
+  chat: [],
+  lastTurn: null,
+  finalScores: null,
+  error: null,
+  nextChatId: 1,
 });
